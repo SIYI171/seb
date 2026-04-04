@@ -89,9 +89,75 @@ npm run dev
 
 访问 http://localhost:3000 即可使用。
 
-### 生产部署
+## 快速安装
 
-#### 构建
+### 1. 下载 Release
+
+从 [Releases](https://github.com/SIYI171/seb/releases) 页面下载最新版本：
+
+- `seb-backend-1.0.0.jar` - 后端程序
+- `seb-frontend-dist.zip` - 前端静态文件
+- `GeoLite2-City.mmdb` - GeoIP 数据库（可选）
+
+### 2. 创建数据库
+
+```sql
+CREATE DATABASE seb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### 3. 准备目录结构
+
+```
+/opt/seb/
+├── seb-backend-1.0.0.jar
+├── data/
+│   └── GeoLite2-City.mmdb    # IP 地理位置数据库
+└── dist/                      # 解压 seb-frontend-dist.zip
+    ├── index.html
+    ├── assets/
+    └── tracker/
+        └── seb.js
+```
+
+### 4. 启动后端
+
+```bash
+cd /opt/seb
+java -jar seb-backend-1.0.0.jar
+```
+
+### 5. 配置 Nginx
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    root /opt/seb/dist;
+    index index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    location /api/ {
+        proxy_pass http://127.0.0.1:7322;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+### 6. 访问
+
+打开浏览器访问 `http://your-domain.com`，首次登录会自动注册管理员账号。
+
+---
+
+## 生产部署
+
+### 构建
 
 ```bash
 # 后端
@@ -108,38 +174,6 @@ npm run build
 ```bash
 java -jar backend/target/seb-backend-1.0.0.jar
 ```
-
-## Docker 部署
-
-### 一键部署（推荐）
-
-```bash
-git clone https://github.com/SIYI171/seb.git
-cd seb
-mkdir -p data
-
-# 下载 GeoIP 数据库
-curl -L -o data/GeoLite2-City.mmdb "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb"
-
-docker-compose up -d
-```
-
-访问 http://localhost:3000
-
-**默认数据库配置**：
-- 用户名：`seb`
-- 密码：`123456`
-
-### 环境变量
-
-| 变量名 | 说明 | 默认值 |
-|--------|------|--------|
-| `DB_HOST` | 数据库地址 | localhost |
-| `DB_PORT` | 数据库端口 | 3306 |
-| `DB_NAME` | 数据库名称 | seb |
-| `DB_USER` | 数据库用户名 | seb |
-| `DB_PASS` | 数据库密码 | 123456 |
-| `SERVER_PORT` | 后端端口 | 7322 |
 
 ## 使用说明
 
@@ -206,8 +240,6 @@ seb/
 │   ├── src/
 │   ├── public/
 │   └── package.json
-├── docker-compose.yml
-├── Dockerfile
 └── README.md
 ```
 

@@ -25,6 +25,8 @@ yarn-error.log*
 # Build
 frontend/dist/
 backend/target/
+release/
+*.zip
 
 # IDE
 .idea/
