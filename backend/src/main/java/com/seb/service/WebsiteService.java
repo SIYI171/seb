@@ -41,6 +41,9 @@ public class WebsiteService {
     }
 
     public Website findByShareToken(String shareToken) {
+        if (shareToken == null || shareToken.isEmpty()) {
+            return null;
+        }
         LambdaQueryWrapper<Website> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Website::getShareToken, shareToken);
         return websiteRepository.selectOne(wrapper);
