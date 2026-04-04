@@ -122,7 +122,8 @@ async function disableShare() {
   if (!shareSite.value) return
   try {
     await api.delete(`/websites/${shareSite.value.id}/share`)
-    shareSite.value.shareToken = ''
+    shareSite.value.shareToken = null
+    shareDialog.value = false
     await loadWebsites()
   } catch (e) {
     console.error(e)
@@ -241,7 +242,7 @@ onMounted(() => {
       </Card>
     </div>
 
-    <Dialog v-model:open="showDialog">
+    <Dialog v-model:open="showDialog" class="max-w-xl">
       <div class="space-y-6">
         <div>
           <h2 class="text-lg font-semibold">添加网站</h2>
