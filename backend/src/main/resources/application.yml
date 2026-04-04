@@ -1,12 +1,12 @@
 server:
-  port: 7322
+  port: ${SERVER_PORT:7322}
 
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/seb?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-    username: seb
-    password: 123456
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:seb}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${DB_USER:seb}
+    password: ${DB_PASS:123456}
 
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml

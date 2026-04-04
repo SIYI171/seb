@@ -5,13 +5,12 @@ services:
     build: .
     ports:
       - "3000:3000"
-      - "7322:7322"
     environment:
       - DB_HOST=db
       - DB_PORT=3306
       - DB_NAME=seb
       - DB_USER=seb
-      - DB_PASS=seb_password
+      - DB_PASS=123456
     volumes:
       - ./data:/app/data
     depends_on:
@@ -22,10 +21,10 @@ services:
   db:
     image: mysql:8.0
     environment:
-      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_ROOT_PASSWORD=123456
       - MYSQL_DATABASE=seb
       - MYSQL_USER=seb
-      - MYSQL_PASSWORD=seb_password
+      - MYSQL_PASSWORD=123456
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:

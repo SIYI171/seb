@@ -70,7 +70,7 @@ spring:
 
 #### 4. 下载 GeoIP 数据库
 
-从 [MaxMind](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) 下载 GeoLite2-City.mmdb，放入 `backend/data/` 目录。
+从 [MaxMind](https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb) 下载 GeoLite2-City.mmdb，放入 `backend/data/` 目录。
 
 #### 5. 启动后端
 
@@ -111,30 +111,24 @@ java -jar backend/target/seb-backend-1.0.0.jar
 
 ## Docker 部署
 
-### 使用 Docker Compose（推荐）
+### 一键部署（推荐）
 
 ```bash
+git clone https://github.com/SIYI171/seb.git
+cd seb
+mkdir -p data
+
+# 下载 GeoIP 数据库
+curl -L -o data/GeoLite2-City.mmdb "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb"
+
 docker-compose up -d
 ```
 
 访问 http://localhost:3000
 
-### 手动构建
-
-```bash
-# 构建镜像
-docker build -t seb-analytics .
-
-# 运行容器
-docker run -d \
-  -p 3000:3000 \
-  -p 7322:7322 \
-  -e DB_HOST=localhost \
-  -e DB_NAME=seb \
-  -e DB_USER=root \
-  -e DB_PASS=password \
-  seb-analytics
-```
+**默认数据库配置**：
+- 用户名：`seb`
+- 密码：`123456`
 
 ### 环境变量
 
@@ -143,8 +137,8 @@ docker run -d \
 | `DB_HOST` | 数据库地址 | localhost |
 | `DB_PORT` | 数据库端口 | 3306 |
 | `DB_NAME` | 数据库名称 | seb |
-| `DB_USER` | 数据库用户名 | root |
-| `DB_PASS` | 数据库密码 | - |
+| `DB_USER` | 数据库用户名 | seb |
+| `DB_PASS` | 数据库密码 | 123456 |
 | `SERVER_PORT` | 后端端口 | 7322 |
 
 ## 使用说明
