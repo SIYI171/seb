@@ -25,6 +25,17 @@ public class AdminService {
         Admin admin = adminRepository.selectOne(wrapper);
         
         if (admin == null) {
+            LambdaQueryWrapper<Admin> countWrapper = new LambdaQueryWrapper<>();
+            Long count = adminRepository.selectCount(countWrapper);
+            
+            if (count == 0) {
+                admin = new Admin();
+                admin.setUsername(username);
+                admin.setPassword(passwordEncoder.encode(password));
+                adminRepository.insert(admin);
+                return jwtUtil.generateToken(admin.getId(), admin.getUsername());
+            }
+            
             throw new RuntimeException("用户不存在");
         }
         
