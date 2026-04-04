@@ -46,7 +46,7 @@
 #### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/seb.git
+git clone https://github.com/SIYI171/seb.git
 cd seb
 ```
 
