@@ -34,22 +34,16 @@ public class ShareController {
     @GetMapping("/{token}/stats")
     public Result<StatsResponse> getStats(
             @PathVariable String token,
-            @RequestParam(defaultValue = "") LocalDate start,
-            @RequestParam(defaultValue = "") LocalDate end) {
+            @RequestParam(required = false) LocalDate start,
+            @RequestParam(required = false) LocalDate end) {
         
         Website website = websiteService.findByShareToken(token);
         if (website == null) {
             return Result.error(404, "分享链接不存在或已失效");
         }
         
-        if (start == null || start.toString().isEmpty()) {
-            start = LocalDate.now().minusDays(7);
-        }
-        if (end == null || end.toString().isEmpty()) {
-            end = LocalDate.now();
-        }
-        
-        return Result.success(statsService.getStats(website.getId(), start, end));
+        LocalDate[] range = normalizeRange(start, end);
+        return Result.success(statsService.getStats(website.getId(), range[0], range[1]));
     }
     
     @GetMapping("/{token}/realtime")
@@ -64,12 +58,26 @@ public class ShareController {
     @GetMapping("/{token}/recent")
     public Result<List<Map<String, Object>>> getRecent(
             @PathVariable String token,
-            @RequestParam(defaultValue = "20") int limit) {
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) LocalDate start,
+            @RequestParam(required = false) LocalDate end) {
         
         Website website = websiteService.findByShareToken(token);
         if (website == null) {
             return Result.error(404, "分享链接不存在或已失效");
         }
-        return Result.success(statsService.getRecentVisits(website.getId(), limit));
+        LocalDate[] range = normalizeRange(start, end);
+        return Result.success(statsService.getRecentVisits(website.getId(), limit, range[0], range[1]));
+    }
+
+    private LocalDate[] normalizeRange(LocalDate start, LocalDate end) {
+        LocalDate normalizedStart = start != null ? start : LocalDate.now().minusDays(6);
+        LocalDate normalizedEnd = end != null ? end : LocalDate.now();
+        if (normalizedStart.isAfter(normalizedEnd)) {
+            LocalDate temp = normalizedStart;
+            normalizedStart = normalizedEnd;
+            normalizedEnd = temp;
+        }
+        return new LocalDate[]{normalizedStart, normalizedEnd};
     }
 }

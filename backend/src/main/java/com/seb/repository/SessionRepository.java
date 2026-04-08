@@ -57,4 +57,34 @@ public interface SessionRepository extends BaseMapper<Session> {
             "FROM session WHERE website_id = #{websiteId} ORDER BY last_activity_at DESC LIMIT #{limit}")
     java.util.List<java.util.Map<String, Object>> findRecentSessions(@Param("websiteId") Long websiteId,
                                                                      @Param("limit") int limit);
+
+    @Select("SELECT session_id, visitor_id, entry_url, exit_url, duration, created_at, last_activity_at, ended_at " +
+            "FROM session WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
+            "ORDER BY last_activity_at DESC LIMIT #{limit}")
+    java.util.List<java.util.Map<String, Object>> findRecentSessionsInRange(@Param("websiteId") Long websiteId,
+                                                                            @Param("start") LocalDateTime start,
+                                                                            @Param("end") LocalDateTime end,
+                                                                            @Param("limit") int limit);
+
+    @Select("SELECT session_id, visitor_id, entry_url, exit_url, duration, created_at, last_activity_at, ended_at " +
+            "FROM session WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
+            "ORDER BY last_activity_at DESC LIMIT #{limit}")
+    java.util.List<java.util.Map<String, Object>> findRecentSessionsForExport(@Param("websiteId") Long websiteId,
+                                                                               @Param("start") LocalDateTime start,
+                                                                               @Param("end") LocalDateTime end,
+                                                                               @Param("limit") int limit);
+
+    @Select("SELECT session_id, visitor_id, entry_url, exit_url, duration, created_at, last_activity_at, ended_at " +
+            "FROM session WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
+            "ORDER BY last_activity_at DESC LIMIT #{offset}, #{limit}")
+    java.util.List<java.util.Map<String, Object>> findRecentSessionsPageInRange(@Param("websiteId") Long websiteId,
+                                                                                 @Param("start") LocalDateTime start,
+                                                                                 @Param("end") LocalDateTime end,
+                                                                                 @Param("offset") int offset,
+                                                                                 @Param("limit") int limit);
+
+    @Select("SELECT COUNT(*) FROM session WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end}")
+    Long countRecentSessionsInRange(@Param("websiteId") Long websiteId,
+                                    @Param("start") LocalDateTime start,
+                                    @Param("end") LocalDateTime end);
 }

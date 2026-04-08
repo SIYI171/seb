@@ -1,16 +1,9 @@
-﻿<script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+<script setup lang="ts">
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { echarts } from '../lib/echarts'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Badge,
-  Skeleton
-} from '@/components/ui'
-import { Eye, Users, TrendingUp, Globe, Clock } from 'lucide-vue-next'
+import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton } from '@/components/ui'
+import { Activity, Eye, Globe2, Sparkles, TrendingUp, Users } from 'lucide-vue-next'
 import axios from 'axios'
 
 interface Website {
@@ -62,14 +55,18 @@ let refreshTimer: number | null = null
 
 const apiBase = import.meta.env.VITE_API_URL || ''
 
+const summaryText = computed(() => {
+  if (!stats.value) return '正在加载分享数据。'
+  if (!stats.value.pageviews) return '当前时间范围内还没有公开可见的访问数据。'
+  if (realtimeCount.value > 0) return `当前有 ${realtimeCount.value} 位访客正在浏览这个站点。`
+  return '这里展示的是这个站点最近的访问趋势和基本访问构成。'
+})
+
 async function loadWebsite() {
   try {
     const res = await axios.get(`${apiBase}/api/share/${token}`)
-    if (res.data.code === 200) {
-      website.value = res.data.data
-    } else {
-      error.value = res.data.message || '加载失败'
-    }
+    if (res.data.code === 200) website.value = res.data.data
+    else error.value = res.data.message || '加载失败'
   } catch (e: any) {
     error.value = e.response?.data?.message || '加载失败'
   }
@@ -78,9 +75,7 @@ async function loadWebsite() {
 async function loadStats() {
   try {
     const res = await axios.get(`${apiBase}/api/share/${token}/stats`)
-    if (res.data.code === 200) {
-      stats.value = res.data.data
-    }
+    if (res.data.code === 200) stats.value = res.data.data
   } catch (e) {
     console.error(e)
   }
@@ -89,9 +84,7 @@ async function loadStats() {
 async function loadRealtime() {
   try {
     const res = await axios.get(`${apiBase}/api/share/${token}/realtime`)
-    if (res.data.code === 200) {
-      realtimeCount.value = res.data.data
-    }
+    if (res.data.code === 200) realtimeCount.value = res.data.data
   } catch (e) {
     console.error(e)
   }
@@ -100,9 +93,7 @@ async function loadRealtime() {
 async function loadRecentVisits() {
   try {
     const res = await axios.get(`${apiBase}/api/share/${token}/recent?limit=10`)
-    if (res.data.code === 200) {
-      recentVisits.value = res.data.data
-    }
+    if (res.data.code === 200) recentVisits.value = res.data.data
   } catch (e) {
     console.error(e)
   }
@@ -114,10 +105,10 @@ function formatNumber(num: number): string {
   return num.toString()
 }
 
-function truncateUrl(url: string, maxLen: number = 40): string {
+function truncateUrl(url: string, maxLen = 48): string {
   if (!url) return '-'
   if (url.length <= maxLen) return url
-  return url.substring(0, maxLen) + '...'
+  return `${url.substring(0, maxLen)}...`
 }
 
 function formatTime(dateStr: string): string {
@@ -125,7 +116,6 @@ function formatTime(dateStr: string): string {
   const date = new Date(dateStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
-
   if (diff < 60000) return '刚刚'
   if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
@@ -134,24 +124,13 @@ function formatTime(dateStr: string): string {
 
 function renderCharts() {
   if (trendChartRef.value && stats.value?.trend?.length) {
-    if (trendChart) trendChart.dispose()
+    trendChart?.dispose()
     trendChart = echarts.init(trendChartRef.value)
     trendChart.setOption({
       tooltip: { trigger: 'axis' },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: stats.value.trend.map((item) => item.date),
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
-        axisLabel: { color: '#64748b' }
-      },
-      yAxis: {
-        type: 'value',
-        axisLine: { show: false },
-        splitLine: { lineStyle: { color: '#e2e8f0' } },
-        axisLabel: { color: '#64748b' }
-      },
+      grid: { left: '2%', right: '2%', bottom: '2%', containLabel: true },
+      xAxis: { type: 'category', boundaryGap: false, data: stats.value.trend.map((item) => item.date), axisLine: { lineStyle: { color: '#dbe3ee' } }, axisLabel: { color: '#64748b' } },
+      yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: '#e7edf5' } }, axisLabel: { color: '#64748b' } },
       series: [{
         name: '浏览量',
         type: 'line',
@@ -159,12 +138,7 @@ function renderCharts() {
         symbol: 'circle',
         symbolSize: 6,
         data: stats.value.trend.map((item) => item.count),
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
-            { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
-          ])
-        },
+        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(59,130,246,0.22)' }, { offset: 1, color: 'rgba(59,130,246,0.03)' }]) },
         lineStyle: { color: '#3b82f6', width: 2 },
         itemStyle: { color: '#3b82f6' }
       }]
@@ -172,71 +146,26 @@ function renderCharts() {
     trendChart.resize()
   }
 
-  const pieColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+  const pieColors = ['#3b82f6', '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#84cc16', '#ef4444']
 
   if (browserChartRef.value && stats.value?.browsers?.length) {
-    if (browserChart) browserChart.dispose()
+    browserChart?.dispose()
     browserChart = echarts.init(browserChartRef.value)
-    browserChart.setOption({
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-      series: [{
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-        label: { show: false },
-        emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
-        data: stats.value.browsers.map((item, i) => ({
-          name: item.browser || '未知',
-          value: item.count,
-          itemStyle: { color: pieColors[i % pieColors.length] }
-        }))
-      }]
-    })
+    browserChart.setOption({ tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' }, series: [{ type: 'pie', radius: ['48%', '74%'], itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 3 }, label: { show: false }, emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } }, data: stats.value.browsers.map((item, i) => ({ name: item.browser || '未知', value: item.count, itemStyle: { color: pieColors[i % pieColors.length] } })) }] })
     browserChart.resize()
   }
 
   if (osChartRef.value && stats.value?.os?.length) {
-    if (osChart) osChart.dispose()
+    osChart?.dispose()
     osChart = echarts.init(osChartRef.value)
-    osChart.setOption({
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-      series: [{
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-        label: { show: false },
-        emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
-        data: stats.value.os.map((item, i) => ({
-          name: item.os || '未知',
-          value: item.count,
-          itemStyle: { color: pieColors[i % pieColors.length] }
-        }))
-      }]
-    })
+    osChart.setOption({ tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' }, series: [{ type: 'pie', radius: ['48%', '74%'], itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 3 }, label: { show: false }, emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } }, data: stats.value.os.map((item, i) => ({ name: item.os || '未知', value: item.count, itemStyle: { color: pieColors[i % pieColors.length] } })) }] })
     osChart.resize()
   }
 
   if (countryChartRef.value && stats.value?.countries?.length) {
-    if (countryChart) countryChart.dispose()
+    countryChart?.dispose()
     countryChart = echarts.init(countryChartRef.value)
-    countryChart.setOption({
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-      series: [{
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-        label: { show: false },
-        emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
-        data: stats.value.countries.map((item, i) => ({
-          name: item.country || '未知',
-          value: item.count,
-          itemStyle: { color: pieColors[i % pieColors.length] }
-        }))
-      }]
-    })
+    countryChart.setOption({ tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' }, series: [{ type: 'pie', radius: ['48%', '74%'], itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 3 }, label: { show: false }, emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } }, data: stats.value.countries.map((item, i) => ({ name: item.country || '未知', value: item.count, itemStyle: { color: pieColors[i % pieColors.length] } })) }] })
     countryChart.resize()
   }
 }
@@ -255,17 +184,12 @@ onMounted(async () => {
     await loadRealtime()
     await loadRecentVisits()
     loading.value = false
-
     await nextTick()
-    setTimeout(() => {
-      renderCharts()
-    }, 100)
-
+    window.setTimeout(renderCharts, 100)
     refreshTimer = window.setInterval(() => {
       loadRealtime()
       loadRecentVisits()
     }, 10000)
-
     window.addEventListener('resize', handleResize)
   }
 })
@@ -281,160 +205,104 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-slate-900">
-    <div class="max-w-7xl mx-auto p-4 lg:p-8">
-      <div v-if="error" class="flex flex-col items-center justify-center min-h-[60vh]">
-        <div class="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
-          <Globe class="w-8 h-8 text-red-500" />
-        </div>
-        <h2 class="text-xl font-semibold mb-2">{{ error }}</h2>
-        <p class="text-muted-foreground">请检查链接是否正确或联系分享者</p>
+  <div class="apple-shell min-h-screen px-4 py-4 lg:px-8 lg:py-8">
+    <div class="mx-auto max-w-7xl">
+      <div v-if="error" class="apple-surface flex min-h-[70vh] flex-col items-center justify-center p-10 text-center">
+        <div class="flex h-16 w-16 items-center justify-center rounded-[20px] bg-slate-100 text-slate-500"><Globe2 class="h-8 w-8" /></div>
+        <h2 class="mt-6 text-[2rem] font-semibold tracking-[-0.04em] text-slate-950">{{ error }}</h2>
+        <p class="mt-2 text-sm text-slate-600">请检查链接是否正确，或联系分享者重新生成公开链接。</p>
       </div>
 
       <div v-else class="space-y-6">
-        <div class="flex items-center gap-3">
-          <img src="/logo.png" alt="SEB" class="w-8 h-8 rounded-lg flex-shrink-0" />
-          <div class="min-w-0 flex-1">
-            <h1 class="text-lg font-bold tracking-tight truncate">{{ website?.name || '统计数据' }}</h1>
-            <p v-if="website" class="text-muted-foreground text-xs truncate">{{ website.domain }}</p>
+        <section class="apple-hero pt-4 sm:pt-6 lg:pt-8">
+          <div class="grid gap-8 xl:grid-cols-[1.08fr_0.92fr] xl:items-start">
+            <div>
+              <span class="apple-label">
+                <Sparkles class="h-3.5 w-3.5" />
+                Public Report
+              </span>
+              <h1 class="mt-8 apple-title">{{ website?.name || '公开统计页' }}</h1>
+              <p v-if="website" class="mt-4 text-sm text-slate-500">{{ website.domain }}</p>
+              <p class="mt-6 max-w-xl apple-subtitle">{{ summaryText }}</p>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="apple-card"><div class="flex items-center justify-between text-slate-500"><span class="text-sm">浏览量</span><Eye class="h-4 w-4" /></div><p v-if="loading" class="mt-4"><Skeleton class="h-10 w-16" /></p><p v-else class="apple-stat-value">{{ formatNumber(stats?.pageviews || 0) }}</p></div>
+              <div class="apple-card"><div class="flex items-center justify-between text-slate-500"><span class="text-sm">访客数</span><Users class="h-4 w-4" /></div><p v-if="loading" class="mt-4"><Skeleton class="h-10 w-16" /></p><p v-else class="apple-stat-value">{{ formatNumber(stats?.visitors || 0) }}</p></div>
+              <div class="apple-card"><div class="flex items-center justify-between text-slate-500"><span class="text-sm">在线</span><Activity class="h-4 w-4" /></div><p v-if="loading" class="mt-4"><Skeleton class="h-10 w-16" /></p><p v-else class="apple-stat-value">{{ realtimeCount }}</p></div>
+            </div>
           </div>
-          <Badge variant="secondary" class="text-xs flex-shrink-0">
-            公开
-          </Badge>
-        </div>
+        </section>
 
-        <div class="grid gap-3 grid-cols-3">
-          <Card class="p-0">
-            <CardContent class="p-4">
-              <div class="flex flex-col items-center text-center">
-                <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-2">
-                  <Eye class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <p v-if="loading" class="text-2xl font-bold"><Skeleton class="h-7 w-12" /></p>
-                <p v-else class="text-2xl font-bold">{{ formatNumber(stats?.pageviews || 0) }}</p>
-                <p class="text-xs text-muted-foreground mt-1">浏览量</p>
-              </div>
-            </CardContent>
-          </Card>
+        <section class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div class="apple-surface p-5 sm:p-6">
+            <div class="mb-4 flex items-center gap-2"><TrendingUp class="h-5 w-5 text-slate-500" /><h2 class="text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">访问趋势</h2></div>
+            <div class="relative h-[300px]"><div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div><div v-show="!loading" ref="trendChartRef" class="h-full w-full"></div></div>
+          </div>
 
-          <Card class="p-0">
-            <CardContent class="p-4">
-              <div class="flex flex-col items-center text-center">
-                <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-2">
-                  <Users class="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                <p v-if="loading" class="text-2xl font-bold"><Skeleton class="h-7 w-12" /></p>
-                <p v-else class="text-2xl font-bold">{{ formatNumber(stats?.visitors || 0) }}</p>
-                <p class="text-xs text-muted-foreground mt-1">访客数</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card class="p-0">
-            <CardContent class="p-4">
-              <div class="flex flex-col items-center text-center">
-                <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-2">
-                  <TrendingUp class="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <p v-if="loading" class="text-2xl font-bold"><Skeleton class="h-7 w-12" /></p>
-                <p v-else class="text-2xl font-bold">{{ realtimeCount }}</p>
-                <p class="text-xs text-muted-foreground mt-1">在线</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="flex items-center gap-2 text-base">
-              <TrendingUp class="w-4 h-4" />
-              访问趋势
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="relative h-[250px]">
-              <div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div>
-              <div v-show="!loading" ref="trendChartRef" class="h-full w-full"></div>
+          <div>
+            <div class="apple-card h-full">
+              <p class="text-sm text-slate-500">公开状态</p>
+              <p class="mt-4 text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">{{ realtimeCount > 0 ? '这份数据现在是活的' : '这份数据更适合回看' }}</p>
+              <p class="mt-4 text-sm leading-7 text-slate-600">{{ realtimeCount > 0 ? '当前有访客正在浏览，你看到的是接近实时的公开状态。' : '当前没有明显实时流量，这页更适合用于趋势回顾和对外汇报。' }}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <div class="grid gap-4 grid-cols-1 sm:grid-cols-3">
-          <Card>
-            <CardHeader class="pb-2">
-              <CardTitle class="text-sm">浏览器分布</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="relative h-[180px]">
-                <div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div>
-                <div v-show="!loading" ref="browserChartRef" class="h-full w-full"></div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="pb-2">
-              <CardTitle class="text-sm">操作系统分布</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="relative h-[180px]">
-                <div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div>
-                <div v-show="!loading" ref="osChartRef" class="h-full w-full"></div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader class="pb-2">
-              <CardTitle class="text-sm">地区分布</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="relative h-[180px]">
-                <div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div>
-                <div v-show="!loading" ref="countryChartRef" class="h-full w-full"></div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="flex items-center gap-2 text-base">
-              <Clock class="w-4 h-4" />
-              最近访问
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div v-if="loading" class="space-y-3">
-              <div v-for="i in 5" :key="i" class="p-3 rounded-lg border">
-                <Skeleton class="h-5 w-full mb-2" />
-                <Skeleton class="h-4 w-32" />
-              </div>
-            </div>
-            <div v-else-if="recentVisits?.length" class="space-y-2">
-              <div
-                v-for="visit in recentVisits"
-                :key="visit.id"
-                class="p-3 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-              >
-                <div class="font-mono text-xs text-foreground truncate mb-2">
-                  {{ truncateUrl(visit.url, 60) }}
+        <section>
+          <div class="mb-4"><h2 class="text-xl font-semibold tracking-[-0.03em] text-slate-950">访问构成</h2><p class="mt-1 text-sm text-slate-500">从浏览器、系统和地区三个角度快速理解受众轮廓。</p></div>
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <Card class="border-0 bg-white/80 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+              <CardHeader class="pb-2">
+                <CardTitle class="text-sm">浏览器分布</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div class="relative h-[220px] sm:h-[240px]">
+                  <div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div>
+                  <div v-show="!loading" ref="browserChartRef" class="h-full w-full"></div>
                 </div>
-                <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Badge v-if="visit.country" variant="outline" class="text-xs">{{ visit.country }}</Badge>
-                  <Badge variant="outline" class="text-xs">{{ visit.browser || '-' }}</Badge>
-                  <Badge variant="outline" class="text-xs">{{ visit.os || '-' }}</Badge>
-                  <span class="ml-auto">{{ formatTime(visit.created_at) }}</span>
+              </CardContent>
+            </Card>
+            <Card class="border-0 bg-white/80 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+              <CardHeader class="pb-2">
+                <CardTitle class="text-sm">操作系统分布</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div class="relative h-[220px] sm:h-[240px]">
+                  <div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div>
+                  <div v-show="!loading" ref="osChartRef" class="h-full w-full"></div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card class="border-0 bg-white/80 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.22)] backdrop-blur-xl md:col-span-2 xl:col-span-1">
+              <CardHeader class="pb-2">
+                <CardTitle class="text-sm">地区分布</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div class="relative h-[220px] sm:h-[240px]">
+                  <div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div>
+                  <div v-show="!loading" ref="countryChartRef" class="h-full w-full"></div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section>
+          <div class="mb-4"><h2 class="text-xl font-semibold tracking-[-0.03em] text-slate-950">最近访问</h2><p class="mt-1 text-sm text-slate-500">结合页面、设备和时间，快速了解最近发生了什么访问行为。</p></div>
+          <Card class="border-0 bg-white/80 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+            <CardContent class="p-4 sm:p-6">
+              <div v-if="loading" class="space-y-3"><div v-for="i in 5" :key="i" class="rounded-lg border p-3"><Skeleton class="mb-2 h-5 w-full" /><Skeleton class="h-4 w-32" /></div></div>
+              <div v-else-if="recentVisits?.length" class="space-y-2">
+                <div v-for="visit in recentVisits" :key="visit.id" class="rounded-[24px] border border-slate-200 p-3 transition hover:bg-slate-50/80">
+                  <div class="mb-2 truncate font-mono text-xs text-slate-900">{{ truncateUrl(visit.url, 64) }}</div>
+                  <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500"><Badge v-if="visit.country" variant="outline" class="text-xs">{{ visit.country }}</Badge><Badge variant="outline" class="text-xs">{{ visit.browser || '-' }}</Badge><Badge variant="outline" class="text-xs">{{ visit.os || '-' }}</Badge><span class="ml-auto">{{ formatTime(visit.created_at) }}</span></div>
                 </div>
               </div>
-            </div>
-            <p v-else class="text-muted-foreground text-center py-8">暂无访问记录</p>
-          </CardContent>
-        </Card>
-
-        <div class="text-center text-xs text-muted-foreground py-2">
-          由 <a href="/" class="text-primary hover:underline">SEB Analytics</a> 提供统计
-        </div>
+              <p v-else class="py-8 text-center text-muted-foreground">暂无访问记录</p>
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </div>
   </div>

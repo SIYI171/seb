@@ -1,17 +1,8 @@
-﻿<script setup lang="ts">
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  Card,
-  CardContent,
-  Button,
-  Input,
-  Label,
-  Dialog,
-  Badge,
-  Skeleton
-} from '@/components/ui'
-import { Plus, Trash2, BarChart3, Copy, Check, ExternalLink, Globe, Share2, Link2, X } from 'lucide-vue-next'
+import { Button, Dialog, Input, Label, Badge, Skeleton } from '@/components/ui'
+import { BarChart3, Check, Copy, Globe2, Link2, Plus, Share2, Trash2, Wrench } from 'lucide-vue-next'
 import api from '../api'
 
 interface Website {
@@ -27,18 +18,18 @@ const router = useRouter()
 const websites = ref<Website[]>([])
 const loading = ref(true)
 const showDialog = ref(false)
+const shareDialog = ref(false)
+const shareSite = ref<Website | null>(null)
 const copied = ref<string | null>(null)
 const form = ref({ name: '', domain: '' })
 const submitting = ref(false)
-const shareDialog = ref(false)
-const shareSite = ref<Website | null>(null)
+
+const sharedCount = computed(() => websites.value.filter((site) => site.shareToken).length)
 
 async function loadWebsites() {
   try {
     const res = await api.get('/websites')
-    if (res.code === 200) {
-      websites.value = res.data
-    }
+    if (res.code === 200) websites.value = res.data
   } catch (e) {
     console.error(e)
   } finally {
@@ -48,7 +39,6 @@ async function loadWebsites() {
 
 async function handleCreate() {
   if (!form.value.name || !form.value.domain) return
-
   submitting.value = true
   try {
     const res = await api.post('/websites', form.value)
@@ -66,50 +56,12 @@ async function handleCreate() {
 
 async function handleDelete(id: number) {
   if (!confirm('确定要删除该网站吗？所有统计数据将被删除。')) return
-
   try {
     await api.delete(`/websites/${id}`)
     await loadWebsites()
   } catch (e) {
     console.error(e)
   }
-}
-
-function getTrackingCode(trackingId: string): string {
-  const origin = window.location.origin
-  return `<script src="${origin}/tracker/seb.js" data-tracking-id="${trackingId}"><\/script>`
-}
-
-function getShareUrl(token: string): string {
-  return `${window.location.origin}/share/${token}`
-}
-
-async function copyToClipboard(text: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch {
-    const textarea = document.createElement('textarea')
-    textarea.value = text
-    textarea.style.position = 'fixed'
-    textarea.style.opacity = '0'
-    document.body.appendChild(textarea)
-    textarea.select()
-    document.execCommand('copy')
-    document.body.removeChild(textarea)
-  }
-  copied.value = text
-  setTimeout(() => {
-    copied.value = null
-  }, 2000)
-}
-
-function goToStats(id: number) {
-  router.push(`/stats/${id}`)
-}
-
-function openShareDialog(site: Website) {
-  shareSite.value = site
-  shareDialog.value = true
 }
 
 async function enableShare() {
@@ -137,139 +89,204 @@ async function disableShare() {
   }
 }
 
-onMounted(() => {
-  loadWebsites()
-})
+function openShareDialog(site: Website) {
+  shareSite.value = site
+  shareDialog.value = true
+}
+
+function goToStats(id: number) {
+  router.push(`/stats/${id}`)
+}
+
+function getTrackingCode(trackingId: string) {
+  const origin = window.location.origin
+  return `<script src="${origin}/tracker/seb.js" data-tracking-id="${trackingId}"><\\/script>`
+}
+
+function getShareUrl(token: string) {
+  return `${window.location.origin}/share/${token}`
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('zh-CN')
+}
+
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+  }
+  copied.value = text
+  setTimeout(() => {
+    copied.value = null
+  }, 2000)
+}
+
+onMounted(loadWebsites)
 </script>
 
 <template>
-  <div class="space-y-8">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">网站管理</h1>
-        <p class="text-muted-foreground mt-1">添加和管理您的网站</p>
-      </div>
-      <Button @click="showDialog = true">
-        <Plus class="w-4 h-4 mr-2" />
-        添加网站
-      </Button>
-    </div>
-
-    <div v-if="loading" class="space-y-4">
-      <div v-for="i in 3" :key="i" class="p-6 rounded-xl border">
-        <div class="flex items-start justify-between">
-          <div class="space-y-3 flex-1">
-            <Skeleton class="h-6 w-40" />
-            <Skeleton class="h-4 w-60" />
-            <Skeleton class="h-10 w-full max-w-lg" />
+  <div class="space-y-6">
+    <section class="apple-hero">
+      <div class="grid gap-8 xl:grid-cols-[1.12fr_0.88fr] xl:items-start">
+        <div>
+          <span class="apple-label">
+            <Wrench class="h-3.5 w-3.5" />
+            Site Configuration
+          </span>
+          <h2 class="mt-6 apple-title">添加站点，复制脚本，按需分享。</h2>
+          <div class="mt-8">
+            <Button class="w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800 sm:w-auto" @click="showDialog = true">
+              <Plus class="mr-2 h-4 w-4" />
+              添加网站
+            </Button>
           </div>
-          <div class="flex gap-2">
-            <Skeleton class="h-9 w-20" />
-            <Skeleton class="h-9 w-9" />
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+          <div class="apple-card">
+            <div class="flex items-center justify-between text-slate-500">
+              <span class="text-sm">站点总数</span>
+              <Globe2 class="h-4 w-4" />
+            </div>
+            <p v-if="loading" class="mt-4"><Skeleton class="h-10 w-20" /></p>
+            <p v-else class="apple-stat-value">{{ websites.length }}</p>
+          </div>
+          <div class="apple-card">
+            <div class="flex items-center justify-between text-slate-500">
+              <span class="text-sm">分享已开启</span>
+              <Share2 class="h-4 w-4" />
+            </div>
+            <p v-if="loading" class="mt-4"><Skeleton class="h-10 w-20" /></p>
+            <p v-else class="apple-stat-value">{{ sharedCount }}</p>
+          </div>
+          <div class="apple-card">
+            <p class="text-sm text-slate-500">流程</p>
+            <p class="mt-4 text-sm leading-7 text-slate-600">建站点，装脚本，确认数据，再开分享。</p>
           </div>
         </div>
       </div>
+    </section>
+
+    <div v-if="loading" class="grid gap-5">
+      <div v-for="i in 3" :key="i" class="apple-surface p-6">
+        <Skeleton class="h-8 w-40" />
+        <Skeleton class="mt-3 h-5 w-60" />
+        <Skeleton class="mt-6 h-28 w-full" />
+      </div>
     </div>
 
-    <div v-else-if="websites.length === 0" class="text-center py-16">
-      <div class="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-        <Globe class="w-8 h-8 text-muted-foreground" />
+    <div v-else-if="!websites.length" class="apple-surface p-10 text-center sm:p-16">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] bg-slate-100 text-slate-500">
+        <Globe2 class="h-8 w-8" />
       </div>
-      <h3 class="text-lg font-semibold mb-2">还没有网站</h3>
-      <p class="text-muted-foreground mb-4">添加您的第一个网站开始追踪数据</p>
-      <Button @click="showDialog = true">
-        <Plus class="w-4 h-4 mr-2" />
-        添加网站
+      <h3 class="mt-6 text-[2rem] font-semibold tracking-[-0.04em] text-slate-950">还没有网站</h3>
+      <p class="mx-auto mt-3 max-w-lg text-sm leading-7 text-slate-600">先添加一个站点，再把追踪脚本放到目标页面中，数据就会开始流入控制台。</p>
+      <Button class="mt-8 rounded-2xl bg-slate-950 text-white hover:bg-slate-800" @click="showDialog = true">
+        <Plus class="mr-2 h-4 w-4" />
+        添加第一个网站
       </Button>
     </div>
 
-    <div v-else class="space-y-4">
-      <Card v-for="site in websites" :key="site.id">
-        <CardContent class="p-6">
-          <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-            <div class="space-y-3 flex-1">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                  <Globe class="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h3 class="font-semibold text-lg">{{ site.name }}</h3>
-                    <Badge v-if="site.shareToken" variant="secondary" class="text-xs">
-                      已分享
-                    </Badge>
-                  </div>
-                  <a
-                    :href="'https://' + site.domain"
-                    target="_blank"
-                    class="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-                  >
-                    {{ site.domain }}
-                    <ExternalLink class="w-3 h-3" />
-                  </a>
-                </div>
+    <div v-else class="space-y-5">
+      <div v-for="site in websites" :key="site.id" class="apple-surface overflow-hidden">
+        <div class="border-b border-slate-200/80 px-4 py-5 sm:px-6">
+          <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="truncate text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">{{ site.name }}</h3>
+                <Badge variant="outline">创建于 {{ formatDate(site.createdAt) }}</Badge>
+                <Badge v-if="site.shareToken" variant="success">分享已启用</Badge>
               </div>
-
-              <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 font-mono text-xs overflow-x-auto">
-                <div class="flex items-center justify-between gap-2">
-                  <code class="text-slate-600 dark:text-slate-300 break-all">{{ getTrackingCode(site.trackingId) }}</code>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="flex-shrink-0"
-                    @click="copyToClipboard(getTrackingCode(site.trackingId))"
-                  >
-                    <Check v-if="copied === getTrackingCode(site.trackingId)" class="w-4 h-4 text-green-500" />
-                    <Copy v-else class="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <p class="text-xs text-muted-foreground">
-                追踪 ID: <code class="bg-muted px-1.5 py-0.5 rounded">{{ site.trackingId }}</code>
-              </p>
+              <p class="mt-2 text-sm text-slate-500">{{ site.domain }}</p>
             </div>
 
-            <div class="flex gap-2 lg:flex-col">
-              <Button variant="outline" @click="goToStats(site.id)">
-                <BarChart3 class="w-4 h-4 mr-2" />
+            <div class="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
+              <Button variant="outline" class="w-full rounded-2xl border-slate-200 bg-white/80 sm:w-auto" @click="goToStats(site.id)">
+                <BarChart3 class="mr-2 h-4 w-4" />
                 查看统计
               </Button>
-              <Button variant="outline" @click="openShareDialog(site)">
-                <Share2 class="w-4 h-4 mr-2" />
-                分享
+              <Button variant="outline" class="w-full rounded-2xl border-slate-200 bg-white/80 sm:w-auto" @click="openShareDialog(site)">
+                <Share2 class="mr-2 h-4 w-4" />
+                分享设置
               </Button>
-              <Button variant="ghost" class="text-destructive hover:text-destructive" @click="handleDelete(site.id)">
-                <Trash2 class="w-4 h-4 mr-2" />
+              <Button variant="ghost" class="w-full rounded-2xl text-destructive hover:bg-red-50 hover:text-destructive sm:w-auto" @click="handleDelete(site.id)">
+                <Trash2 class="mr-2 h-4 w-4" />
                 删除
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <div class="grid gap-6 p-4 sm:p-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div class="space-y-4">
+            <div class="apple-soft">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-950">追踪脚本</p>
+                <Button variant="ghost" size="icon" class="h-8 w-8 rounded-xl" @click="copyToClipboard(getTrackingCode(site.trackingId))">
+                  <Check v-if="copied === getTrackingCode(site.trackingId)" class="h-4 w-4 text-green-500" />
+                  <Copy v-else class="h-4 w-4" />
+                </Button>
+              </div>
+              <div class="mt-3 overflow-x-auto rounded-[20px] bg-white">
+                <code class="block min-w-max px-4 py-4 font-mono text-xs text-slate-700">
+                  {{ getTrackingCode(site.trackingId) }}
+                </code>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="apple-soft">
+              <p class="text-sm font-medium text-slate-950">当前状态</p>
+              <div class="mt-4 space-y-3 text-sm">
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-slate-500">追踪 ID</span>
+                  <code class="rounded-xl bg-white px-2 py-1 text-xs">{{ site.trackingId }}</code>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-slate-500">分享状态</span>
+                  <span class="font-medium text-slate-900">{{ site.shareToken ? '已启用' : '未启用' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="apple-soft">
+              <p class="text-sm font-medium text-slate-950">说明</p>
+              <p class="mt-2 text-sm leading-7 text-slate-600">这里不看报表，只处理接入和分享。</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <Dialog v-model:open="showDialog" class="max-w-xl">
+    <Dialog v-model:open="showDialog">
       <div class="space-y-6">
         <div>
-          <h2 class="text-lg font-semibold">添加网站</h2>
-          <p class="text-sm text-muted-foreground">添加一个新网站来开始追踪数据</p>
+          <h2 class="text-[1.6rem] font-semibold tracking-[-0.04em] text-slate-950">添加网站</h2>
+          <p class="mt-2 text-sm text-slate-500">填写后立即生成追踪 ID。</p>
         </div>
-
         <div class="space-y-4">
           <div class="space-y-2">
-            <Label label="网站名称" />
-            <Input v-model="form.name" placeholder="我的网站" />
+            <Label label="网站名称" class="text-slate-600" />
+            <Input v-model="form.name" placeholder="我的网站" class="apple-input" />
           </div>
           <div class="space-y-2">
-            <Label label="域名" />
-            <Input v-model="form.domain" placeholder="example.com" />
+            <Label label="域名" class="text-slate-600" />
+            <Input v-model="form.domain" placeholder="example.com" class="apple-input" />
           </div>
         </div>
-
-        <div class="flex justify-end gap-3">
-          <Button variant="outline" @click="showDialog = false">取消</Button>
-          <Button :loading="submitting" @click="handleCreate">添加</Button>
+        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" class="rounded-2xl border-slate-200 bg-white/80" @click="showDialog = false">取消</Button>
+          <Button class="rounded-2xl bg-slate-950 text-white hover:bg-slate-800" :loading="submitting" @click="handleCreate">添加</Button>
         </div>
       </div>
     </Dialog>
@@ -277,58 +294,42 @@ onMounted(() => {
     <Dialog v-model:open="shareDialog">
       <div class="space-y-6">
         <div>
-          <h2 class="text-lg font-semibold">分享统计</h2>
-          <p class="text-sm text-muted-foreground">生成公开链接，让游客查看统计数据</p>
+          <h2 class="text-[1.6rem] font-semibold tracking-[-0.04em] text-slate-950">分享设置</h2>
+          <p class="mt-2 text-sm text-slate-500">生成公开链接供外部查看。</p>
         </div>
-
         <div v-if="shareSite" class="space-y-4">
-          <div class="flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
-            <Globe class="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p class="font-medium">{{ shareSite.name }}</p>
-              <p class="text-sm text-muted-foreground">{{ shareSite.domain }}</p>
-            </div>
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <p class="font-medium text-slate-900">{{ shareSite.name }}</p>
+            <p class="mt-1 text-sm text-slate-500">{{ shareSite.domain }}</p>
           </div>
 
           <div v-if="shareSite.shareToken" class="space-y-3">
-            <div class="flex items-center gap-2">
-              <Badge variant="default" class="bg-green-500">分享已启用</Badge>
-            </div>
-
-            <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 font-mono text-xs">
+            <Badge variant="success">分享已启用</Badge>
+            <div class="rounded-2xl bg-slate-50 p-3 font-mono text-xs text-slate-700">
               <div class="flex items-center justify-between gap-2">
-                <code class="text-slate-600 dark:text-slate-300 break-all">{{ getShareUrl(shareSite.shareToken) }}</code>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="flex-shrink-0"
-                  @click="copyToClipboard(getShareUrl(shareSite.shareToken))"
-                >
-                  <Check v-if="copied === getShareUrl(shareSite.shareToken)" class="w-4 h-4 text-green-500" />
-                  <Copy v-else class="w-4 h-4" />
+                <code class="break-all">{{ getShareUrl(shareSite.shareToken) }}</code>
+                <Button variant="ghost" size="icon" class="h-8 w-8" @click="copyToClipboard(getShareUrl(shareSite.shareToken))">
+                  <Check v-if="copied === getShareUrl(shareSite.shareToken)" class="h-4 w-4 text-green-500" />
+                  <Copy v-else class="h-4 w-4" />
                 </Button>
               </div>
             </div>
-
-            <Button variant="outline" class="w-full text-destructive hover:text-destructive" @click="disableShare">
-              <X class="w-4 h-4 mr-2" />
+            <Button variant="outline" class="w-full rounded-2xl text-destructive hover:bg-red-50 hover:text-destructive" @click="disableShare">
+              <Trash2 class="mr-2 h-4 w-4" />
               关闭分享
             </Button>
           </div>
 
           <div v-else class="space-y-3">
-            <p class="text-sm text-muted-foreground">
-              启用分享后将生成一个公开链接，任何人都可以查看该网站的统计数据。
-            </p>
-            <Button class="w-full" @click="enableShare">
-              <Link2 class="w-4 h-4 mr-2" />
+            <p class="text-sm text-slate-500">启用后会生成公开地址。</p>
+            <Button class="w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800" @click="enableShare">
+              <Link2 class="mr-2 h-4 w-4" />
               生成分享链接
             </Button>
           </div>
         </div>
-
         <div class="flex justify-end">
-          <Button variant="outline" @click="shareDialog = false">关闭</Button>
+          <Button variant="outline" class="rounded-2xl border-slate-200 bg-white/80" @click="shareDialog = false">关闭</Button>
         </div>
       </div>
     </Dialog>

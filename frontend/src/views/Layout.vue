@@ -1,29 +1,21 @@
-﻿<script setup lang="ts">
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { Button } from '@/components/ui'
-import {
-  BarChart3,
-  Monitor,
-  LogOut,
-  Menu,
-  X,
-  ChevronRight
-} from 'lucide-vue-next'
+import { BarChart3, Globe2, LogOut, Menu, X } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const collapsed = ref(false)
 const mobileOpen = ref(false)
 
 const navItems = [
   { path: '/dashboard', label: '概览', icon: BarChart3 },
-  { path: '/websites', label: '网站管理', icon: Monitor }
+  { path: '/websites', label: '站点', icon: Globe2 }
 ]
 
-const currentPath = computed(() => route.path)
+const currentLabel = computed(() => navItems.find((item) => route.path.startsWith(item.path))?.label || '工作台')
 
 function navigate(path: string) {
   router.push(path)
@@ -37,87 +29,85 @@ function logout() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-slate-900">
-    <header class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-slate-800 border-b z-40 flex items-center justify-between px-4">
-      <div class="flex items-center gap-2">
-        <img src="/logo.png" alt="SEB" class="w-8 h-8 rounded-lg" />
-        <span class="font-semibold">SEB</span>
-      </div>
-      <Button variant="ghost" size="icon" @click="mobileOpen = !mobileOpen">
-        <Menu v-if="!mobileOpen" class="w-5 h-5" />
-        <X v-else class="w-5 h-5" />
-      </Button>
-    </header>
+  <div class="apple-shell">
+    <div class="apple-grid">
+      <aside
+        :class="[
+          'fixed inset-y-4 left-4 z-40 w-[min(20rem,88vw)] transition-transform duration-300 lg:static lg:inset-auto lg:w-auto lg:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-[120%]'
+        ]"
+      >
+        <div class="apple-sidebar flex h-[calc(100vh-2rem)] flex-col lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
+          <div class="flex items-center gap-3">
+            <div class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] bg-white shadow-[0_18px_40px_-24px_rgba(15,23,42,0.18)] ring-1 ring-slate-200/80">
+              <img src="/logo.png" alt="SEB Logo" class="h-full w-full object-contain p-1.5" />
+            </div>
+            <div>
+              <p class="text-lg font-semibold tracking-[-0.03em] text-slate-950">SEB</p>
+              <p class="text-xs text-slate-500">Analytics Console</p>
+            </div>
+          </div>
 
-    <aside
-      :class="[
-        'fixed top-0 left-0 h-full bg-white dark:bg-slate-800 border-r z-50 transition-all duration-300',
-        'lg:translate-x-0',
-        mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
-        collapsed ? 'lg:w-16' : 'lg:w-64',
-        'w-64'
-      ]"
-    >
-      <div class="h-16 flex items-center justify-between px-4 border-b">
-        <div v-if="!collapsed" class="flex items-center gap-2">
-          <img src="/logo.png" alt="SEB" class="w-8 h-8 rounded-lg" />
-          <span class="font-semibold">SEB Analytics</span>
+          <nav class="mt-8 space-y-2">
+            <button
+              v-for="item in navItems"
+              :key="item.path"
+              :class="[
+                'apple-nav-btn',
+                route.path.startsWith(item.path)
+                  ? 'apple-nav-btn-active'
+                  : 'hover:bg-white/85 hover:text-slate-950'
+              ]"
+              @click="navigate(item.path)"
+            >
+              <component :is="item.icon" class="h-5 w-5" />
+              <span>{{ item.label }}</span>
+            </button>
+          </nav>
+
+          <div class="mt-6 rounded-[24px] bg-slate-50/90 px-4 py-3 text-xs leading-6 text-slate-500">
+            <p>概览看全局，站点管配置，统计看细节。</p>
+          </div>
+
+          <div class="mt-auto pt-6">
+            <Button variant="ghost" class="w-full justify-start rounded-2xl text-slate-600 hover:bg-white/85 hover:text-slate-950" @click="logout">
+              <LogOut class="mr-2 h-4 w-4" />
+              退出登录
+            </Button>
+          </div>
         </div>
-        <img v-else src="/logo.png" alt="SEB" class="w-8 h-8 rounded-lg mx-auto" />
-        <Button
-          variant="ghost"
-          size="icon"
-          class="hidden lg:flex"
-          @click="collapsed = !collapsed"
-        >
-          <ChevronRight :class="['w-4 h-4 transition-transform', collapsed && 'rotate-180']" />
-        </Button>
+      </aside>
+
+      <div class="apple-main">
+        <header class="apple-header lg:hidden">
+          <div class="flex min-w-0 items-center gap-3">
+            <Button variant="ghost" size="icon" class="rounded-2xl bg-slate-50 lg:hidden" @click="mobileOpen = !mobileOpen">
+              <Menu v-if="!mobileOpen" class="h-5 w-5" />
+              <X v-else class="h-5 w-5" />
+            </Button>
+            <div class="flex min-w-0 items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[14px] bg-white shadow-[0_12px_28px_-20px_rgba(15,23,42,0.18)] ring-1 ring-slate-200/80 lg:hidden">
+                <img src="/logo.png" alt="SEB Logo" class="h-full w-full object-contain p-1.5" />
+              </div>
+              <div class="min-w-0">
+                <p class="truncate text-[11px] uppercase tracking-[0.24em] text-slate-400">Workspace</p>
+                <h1 class="truncate text-lg font-semibold tracking-[-0.03em] text-slate-950">{{ currentLabel }}</h1>
+              </div>
+            </div>
+          </div>
+
+          <div class="hidden items-center gap-2 rounded-full bg-slate-950 px-3 py-1.5 text-xs font-medium text-white sm:inline-flex">
+            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+            Active
+          </div>
+        </header>
+
+        <main class="apple-page px-1 pt-1 lg:pt-0">
+          <router-view />
+        </main>
       </div>
+    </div>
 
-      <nav class="p-2 space-y-1">
-        <button
-          v-for="item in navItems"
-          :key="item.path"
-          :class="[
-            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left',
-            currentPath === item.path
-              ? 'bg-primary text-white'
-              : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
-          ]"
-          @click="navigate(item.path)"
-        >
-          <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
-          <span v-if="!collapsed" class="text-sm font-medium">{{ item.label }}</span>
-        </button>
-      </nav>
-
-      <div class="absolute bottom-0 left-0 right-0 p-4 border-t">
-        <Button
-          variant="ghost"
-          :class="['w-full justify-start gap-3 text-slate-500', collapsed && 'justify-center']"
-          @click="logout"
-        >
-          <LogOut class="w-5 h-5" />
-          <span v-if="!collapsed">退出登录</span>
-        </Button>
-      </div>
-    </aside>
-
-    <div
-      v-if="mobileOpen"
-      class="fixed inset-0 bg-black/50 z-40 lg:hidden"
-      @click="mobileOpen = false"
-    ></div>
-
-    <main
-      :class="[
-        'pt-16 lg:pt-0 transition-all duration-300 min-h-screen',
-        collapsed ? 'lg:ml-16' : 'lg:ml-64'
-      ]"
-    >
-      <div class="p-4 lg:p-8">
-        <router-view />
-      </div>
-    </main>
+    <div v-if="mobileOpen" class="fixed inset-0 z-30 bg-slate-950/20 backdrop-blur-sm lg:hidden" @click="mobileOpen = false"></div>
   </div>
 </template>

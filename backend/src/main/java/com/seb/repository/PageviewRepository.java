@@ -66,9 +66,39 @@ public interface PageviewRepository extends BaseMapper<Pageview> {
             "FROM pageview WHERE website_id = #{websiteId} ORDER BY created_at DESC LIMIT #{limit}")
     List<Map<String, Object>> findRecent(@Param("websiteId") Long websiteId, @Param("limit") int limit);
 
+    @Select("SELECT id, url, referrer, browser, os, device, country, created_at " +
+            "FROM pageview WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
+            "ORDER BY created_at DESC LIMIT #{limit}")
+    List<Map<String, Object>> findRecentInRange(@Param("websiteId") Long websiteId,
+                                                @Param("limit") int limit,
+                                                @Param("start") LocalDateTime start,
+                                                @Param("end") LocalDateTime end);
+
     @Select("SELECT id, url, referrer, browser, os, device, country, ip, created_at " +
             "FROM pageview WHERE website_id = #{websiteId} ORDER BY created_at DESC LIMIT #{limit}")
     List<Map<String, Object>> findRecentWithIp(@Param("websiteId") Long websiteId, @Param("limit") int limit);
+
+    @Select("SELECT id, url, referrer, browser, os, device, country, ip, created_at " +
+            "FROM pageview WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
+            "ORDER BY created_at DESC LIMIT #{limit}")
+    List<Map<String, Object>> findRecentWithIpInRange(@Param("websiteId") Long websiteId,
+                                                      @Param("limit") int limit,
+                                                      @Param("start") LocalDateTime start,
+                                                      @Param("end") LocalDateTime end);
+
+    @Select("SELECT id, url, referrer, browser, os, device, country, ip, created_at " +
+            "FROM pageview WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
+            "ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
+    List<Map<String, Object>> findRecentWithIpPageInRange(@Param("websiteId") Long websiteId,
+                                                          @Param("offset") int offset,
+                                                          @Param("limit") int limit,
+                                                          @Param("start") LocalDateTime start,
+                                                          @Param("end") LocalDateTime end);
+
+    @Select("SELECT COUNT(*) FROM pageview WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end}")
+    Long countRecentWithIpInRange(@Param("websiteId") Long websiteId,
+                                  @Param("start") LocalDateTime start,
+                                  @Param("end") LocalDateTime end);
 
     @Select("SELECT ip, COUNT(*) as count FROM pageview " +
             "WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
@@ -76,6 +106,37 @@ public interface PageviewRepository extends BaseMapper<Pageview> {
     List<Map<String, Object>> countByIp(@Param("websiteId") Long websiteId, 
                                         @Param("start") LocalDateTime start, 
                                         @Param("end") LocalDateTime end);
+
+    @Select("SELECT ip, COUNT(*) as count FROM pageview " +
+            "WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
+            "GROUP BY ip ORDER BY count DESC LIMIT #{limit}")
+    List<Map<String, Object>> countByIpLimited(@Param("websiteId") Long websiteId,
+                                               @Param("start") LocalDateTime start,
+                                               @Param("end") LocalDateTime end,
+                                               @Param("limit") int limit);
+
+    @Select("SELECT url, COUNT(*) as count FROM pageview " +
+            "WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
+            "GROUP BY url ORDER BY count DESC LIMIT #{limit}")
+    List<Map<String, Object>> countByUrlLimited(@Param("websiteId") Long websiteId,
+                                                @Param("start") LocalDateTime start,
+                                                @Param("end") LocalDateTime end,
+                                                @Param("limit") int limit);
+
+    @Select("SELECT url, COUNT(*) as count FROM pageview " +
+            "WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end} " +
+            "GROUP BY url ORDER BY count DESC LIMIT #{offset}, #{limit}")
+    List<Map<String, Object>> countByUrlPage(@Param("websiteId") Long websiteId,
+                                             @Param("start") LocalDateTime start,
+                                             @Param("end") LocalDateTime end,
+                                             @Param("offset") int offset,
+                                             @Param("limit") int limit);
+
+    @Select("SELECT COUNT(DISTINCT url) FROM pageview " +
+            "WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end}")
+    Long countDistinctUrlsInRange(@Param("websiteId") Long websiteId,
+                                  @Param("start") LocalDateTime start,
+                                  @Param("end") LocalDateTime end);
 
     @Select("SELECT COUNT(DISTINCT session_id) FROM pageview " +
             "WHERE website_id = #{websiteId} AND created_at >= #{since}")

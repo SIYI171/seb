@@ -2,6 +2,7 @@ package com.seb.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.seb.dto.CollectRequest;
+import com.seb.dto.PagedResponse;
 import com.seb.dto.StatsResponse;
 import com.seb.entity.Pageview;
 import com.seb.entity.Session;
@@ -9,12 +10,17 @@ import com.seb.entity.Website;
 import com.seb.repository.PageviewRepository;
 import com.seb.repository.SessionRepository;
 import org.springframework.stereotype.Service;
+
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 @Service
 public class StatsService {
@@ -23,15 +29,18 @@ public class StatsService {
     private final SessionRepository sessionRepository;
     private final WebsiteService websiteService;
     private final GeoIpService geoIpService;
+    private final LocalStatsCache localStatsCache;
     
     public StatsService(PageviewRepository pageviewRepository, 
                         SessionRepository sessionRepository,
                         WebsiteService websiteService,
-                        GeoIpService geoIpService) {
+                        GeoIpService geoIpService,
+                        LocalStatsCache localStatsCache) {
         this.pageviewRepository = pageviewRepository;
         this.sessionRepository = sessionRepository;
         this.websiteService = websiteService;
         this.geoIpService = geoIpService;
+        this.localStatsCache = localStatsCache;
     }
     
     public void collect(CollectRequest request, String ip) {
@@ -49,6 +58,7 @@ public class StatsService {
         syncSession(website.getId(), request, now);
 
         if (isSessionEndEvent(request)) {
+            evictWebsiteCache(website.getId());
             return;
         }
 
@@ -64,9 +74,15 @@ public class StatsService {
         pageview.setCountry(country);
         pageview.setIp(ip);
         pageviewRepository.insert(pageview);
+        evictWebsiteCache(website.getId());
     }
     
     public StatsResponse getStats(Long websiteId, LocalDate start, LocalDate end) {
+        String cacheKey = "stats:%d:%s:%s".formatted(websiteId, start, end);
+        return localStatsCache.getOrCompute(cacheKey, Duration.ofSeconds(20), () -> buildStats(websiteId, start, end));
+    }
+
+    private StatsResponse buildStats(Long websiteId, LocalDate start, LocalDate end) {
         LocalDateTime startDateTime = start.atStartOfDay();
         LocalDateTime endDateTime = end.atTime(LocalTime.MAX);
         
@@ -93,7 +109,7 @@ public class StatsService {
         response.setCountries(pageviewRepository.countByCountry(websiteId, startDateTime, endDateTime));
         response.setEntryPages(sessionRepository.countByEntryUrl(websiteId, startDateTime, endDateTime));
         response.setExitPages(sessionRepository.countByExitUrl(websiteId, startDateTime, endDateTime));
-        response.setRecentSessions(sessionRepository.findRecentSessions(websiteId, 10));
+        response.setRecentSessions(sessionRepository.findRecentSessionsInRange(websiteId, startDateTime, endDateTime, 10));
         
         return response;
     }
@@ -108,14 +124,74 @@ public class StatsService {
         return pageviewRepository.findRecent(websiteId, limit);
     }
 
+    public List<Map<String, Object>> getRecentVisits(Long websiteId, int limit, LocalDate start, LocalDate end) {
+        LocalDateTime startDateTime = start.atStartOfDay();
+        LocalDateTime endDateTime = end.atTime(LocalTime.MAX);
+        return pageviewRepository.findRecentInRange(websiteId, limit, startDateTime, endDateTime);
+    }
+
     public List<Map<String, Object>> getRecentVisitsWithIp(Long websiteId, int limit) {
         return pageviewRepository.findRecentWithIp(websiteId, limit);
     }
 
-    public List<Map<String, Object>> getTopIps(Long websiteId, LocalDate start, LocalDate end) {
+    public List<Map<String, Object>> getRecentVisitsWithIp(Long websiteId, int limit, LocalDate start, LocalDate end) {
         LocalDateTime startDateTime = start.atStartOfDay();
         LocalDateTime endDateTime = end.atTime(LocalTime.MAX);
-        return pageviewRepository.countByIp(websiteId, startDateTime, endDateTime);
+        return pageviewRepository.findRecentWithIpInRange(websiteId, limit, startDateTime, endDateTime);
+    }
+
+    public PagedResponse<Map<String, Object>> getRecentVisitsWithIpPage(Long websiteId, int page, int pageSize, LocalDate start, LocalDate end) {
+        LocalDateTime startDateTime = start.atStartOfDay();
+        LocalDateTime endDateTime = end.atTime(LocalTime.MAX);
+        int sanitizedPage = Math.max(1, page);
+        int sanitizedPageSize = Math.min(Math.max(1, pageSize), 100);
+        int offset = (sanitizedPage - 1) * sanitizedPageSize;
+        String cacheKey = "recent:%d:%s:%s:%d:%d".formatted(websiteId, start, end, sanitizedPage, sanitizedPageSize);
+
+        return localStatsCache.getOrCompute(cacheKey, Duration.ofSeconds(10), () -> {
+            List<Map<String, Object>> items = pageviewRepository.findRecentWithIpPageInRange(websiteId, offset, sanitizedPageSize, startDateTime, endDateTime);
+            Long total = pageviewRepository.countRecentWithIpInRange(websiteId, startDateTime, endDateTime);
+            return PagedResponse.of(items, total != null ? total : 0L, sanitizedPage, sanitizedPageSize);
+        });
+    }
+
+    public List<Map<String, Object>> getTopIps(Long websiteId, LocalDate start, LocalDate end) {
+        String cacheKey = "ips:%d:%s:%s".formatted(websiteId, start, end);
+        return localStatsCache.getOrCompute(cacheKey, Duration.ofSeconds(20), () -> {
+            LocalDateTime startDateTime = start.atStartOfDay();
+            LocalDateTime endDateTime = end.atTime(LocalTime.MAX);
+            return pageviewRepository.countByIp(websiteId, startDateTime, endDateTime);
+        });
+    }
+
+    public PagedResponse<Map<String, Object>> getPagesPage(Long websiteId, int page, int pageSize, LocalDate start, LocalDate end) {
+        LocalDateTime startDateTime = start.atStartOfDay();
+        LocalDateTime endDateTime = end.atTime(LocalTime.MAX);
+        int sanitizedPage = Math.max(1, page);
+        int sanitizedPageSize = Math.min(Math.max(1, pageSize), 100);
+        int offset = (sanitizedPage - 1) * sanitizedPageSize;
+        String cacheKey = "pages:%d:%s:%s:%d:%d".formatted(websiteId, start, end, sanitizedPage, sanitizedPageSize);
+
+        return localStatsCache.getOrCompute(cacheKey, Duration.ofSeconds(20), () -> {
+            List<Map<String, Object>> items = pageviewRepository.countByUrlPage(websiteId, startDateTime, endDateTime, offset, sanitizedPageSize);
+            Long total = pageviewRepository.countDistinctUrlsInRange(websiteId, startDateTime, endDateTime);
+            return PagedResponse.of(items, total != null ? total : 0L, sanitizedPage, sanitizedPageSize);
+        });
+    }
+
+    public PagedResponse<Map<String, Object>> getRecentSessionsPage(Long websiteId, int page, int pageSize, LocalDate start, LocalDate end) {
+        LocalDateTime startDateTime = start.atStartOfDay();
+        LocalDateTime endDateTime = end.atTime(LocalTime.MAX);
+        int sanitizedPage = Math.max(1, page);
+        int sanitizedPageSize = Math.min(Math.max(1, pageSize), 100);
+        int offset = (sanitizedPage - 1) * sanitizedPageSize;
+        String cacheKey = "sessions:%d:%s:%s:%d:%d".formatted(websiteId, start, end, sanitizedPage, sanitizedPageSize);
+
+        return localStatsCache.getOrCompute(cacheKey, Duration.ofSeconds(20), () -> {
+            List<Map<String, Object>> items = sessionRepository.findRecentSessionsPageInRange(websiteId, startDateTime, endDateTime, offset, sanitizedPageSize);
+            Long total = sessionRepository.countRecentSessionsInRange(websiteId, startDateTime, endDateTime);
+            return PagedResponse.of(items, total != null ? total : 0L, sanitizedPage, sanitizedPageSize);
+        });
     }
 
     public int updateLocations() {
@@ -130,9 +206,73 @@ public class StatsService {
                 pageview.setCountry(location);
                 pageviewRepository.updateById(pageview);
                 updated++;
+                evictWebsiteCache(pageview.getWebsiteId());
             }
         }
         return updated;
+    }
+
+    public byte[] exportCsv(Long websiteId, String dataset, LocalDate start, LocalDate end) {
+        LocalDateTime startDateTime = start.atStartOfDay();
+        LocalDateTime endDateTime = end.atTime(LocalTime.MAX);
+
+        return switch (normalizeDataset(dataset)) {
+            case "recent" -> buildCsv(
+                    List.of("id", "url", "referrer", "browser", "os", "device", "country", "ip", "created_at"),
+                    pageviewRepository.findRecentWithIpInRange(websiteId, 5000, startDateTime, endDateTime)
+            );
+            case "pages" -> buildCsv(
+                    List.of("url", "count"),
+                    pageviewRepository.countByUrlLimited(websiteId, startDateTime, endDateTime, 1000)
+            );
+            case "ips" -> buildCsv(
+                    List.of("ip", "count"),
+                    pageviewRepository.countByIpLimited(websiteId, startDateTime, endDateTime, 1000)
+            );
+            case "sessions" -> buildCsv(
+                    List.of("session_id", "visitor_id", "entry_url", "exit_url", "duration", "created_at", "last_activity_at", "ended_at"),
+                    sessionRepository.findRecentSessionsForExport(websiteId, startDateTime, endDateTime, 5000)
+            );
+            default -> throw new IllegalArgumentException("Unsupported export dataset");
+        };
+    }
+
+    public String buildExportFilename(Long websiteId, String dataset, LocalDate start, LocalDate end) {
+        return "website-%d-%s-%s-to-%s.csv".formatted(websiteId, normalizeDataset(dataset), start, end);
+    }
+
+    private String normalizeDataset(String dataset) {
+        if (dataset == null || dataset.isBlank()) {
+            return "recent";
+        }
+        return dataset.trim().toLowerCase();
+    }
+
+    private byte[] buildCsv(List<String> headers, List<Map<String, Object>> rows) {
+        List<String> lines = new ArrayList<>();
+        lines.add(String.join(",", headers));
+        for (Map<String, Object> row : rows) {
+            StringJoiner joiner = new StringJoiner(",");
+            for (String header : headers) {
+                joiner.add(escapeCsv(row.get(header)));
+            }
+            lines.add(joiner.toString());
+        }
+        byte[] body = String.join("\r\n", lines).getBytes(StandardCharsets.UTF_8);
+        byte[] bom = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        byte[] result = new byte[bom.length + body.length];
+        System.arraycopy(bom, 0, result, 0, bom.length);
+        System.arraycopy(body, 0, result, bom.length, body.length);
+        return result;
+    }
+
+    private String escapeCsv(Object value) {
+        String text = value == null ? "" : String.valueOf(value);
+        String escaped = text.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n") || escaped.contains("\r")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
     }
 
     private void syncSession(Long websiteId, CollectRequest request, LocalDateTime now) {
@@ -187,5 +327,13 @@ public class StatsService {
             return request.getVisitorId();
         }
         return request.getSessionId();
+    }
+
+    private void evictWebsiteCache(Long websiteId) {
+        localStatsCache.evictByPrefix("stats:" + websiteId + ":");
+        localStatsCache.evictByPrefix("recent:" + websiteId + ":");
+        localStatsCache.evictByPrefix("ips:" + websiteId + ":");
+        localStatsCache.evictByPrefix("pages:" + websiteId + ":");
+        localStatsCache.evictByPrefix("sessions:" + websiteId + ":");
     }
 }

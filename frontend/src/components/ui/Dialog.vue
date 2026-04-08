@@ -17,25 +17,25 @@ function close() {
 <template>
   <Teleport to="body">
     <Transition
-      enter-active-class="transition-opacity duration-200"
+      enter-active-class="transition-opacity duration-250"
       enter-from-class="opacity-0"
       enter-to-class="opacity-100"
       leave-active-class="transition-opacity duration-200"
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="open" class="fixed inset-0 z-50 bg-black/80" @click="close"></div>
+      <div v-if="open" class="fixed inset-0 z-50 bg-slate-950/28 backdrop-blur-sm" @click="close"></div>
     </Transition>
     <Transition
-      enter-active-class="transition-all duration-200"
-      enter-from-class="opacity-0 scale-95"
+      enter-active-class="transition-all duration-250 ease-out"
+      enter-from-class="translate-y-2 opacity-0 scale-[0.985]"
       enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition-all duration-200"
+      leave-active-class="transition-all duration-180 ease-in"
       leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
+      leave-to-class="translate-y-2 opacity-0 scale-[0.985]"
     >
-      <div v-if="open" class="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2">
-        <div :class="cn('w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg', props.class)">
+      <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div :class="cn('max-h-[calc(100vh-2rem)] overflow-y-auto', props.class || 'apple-dialog')" @click.stop>
           <slot />
         </div>
       </div>

@@ -1,16 +1,14 @@
-﻿<script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+<script setup lang="ts">
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@/components/ui'
-import { Eye, Users, Globe, TrendingUp, ArrowUpRight } from 'lucide-vue-next'
+import { Button, Badge, Skeleton } from '@/components/ui'
+import { Activity, ArrowUpRight, Compass, Eye, Globe2, Sparkles, Users } from 'lucide-vue-next'
 import api from '../api'
 
 interface Website {
   id: number
   name: string
   domain: string
-  trackingId: string
-  createdAt: string
 }
 
 interface WebsiteStats {
@@ -30,6 +28,17 @@ const totalPageviews = ref(0)
 const totalVisitors = ref(0)
 const totalRealtime = ref(0)
 let refreshTimer: number | null = null
+
+const spotlight = computed(() => {
+  return [...websiteStats.value].sort((a, b) => {
+    if (b.realtime !== a.realtime) return b.realtime - a.realtime
+    if (b.pageviews !== a.pageviews) return b.pageviews - a.pageviews
+    return b.visitors - a.visitors
+  })[0] || null
+})
+
+const activeSites = computed(() => websiteStats.value.filter((site) => site.realtime > 0))
+const topSites = computed(() => [...websiteStats.value].sort((a, b) => b.pageviews - a.pageviews).slice(0, 5))
 
 async function loadData() {
   try {
@@ -61,25 +70,17 @@ async function loadAllStats() {
         realtime: realtimeRes.code === 200 ? realtimeRes.data : 0
       }
     } catch {
-      return {
-        id: site.id,
-        name: site.name,
-        domain: site.domain,
-        pageviews: 0,
-        visitors: 0,
-        realtime: 0
-      }
+      return { id: site.id, name: site.name, domain: site.domain, pageviews: 0, visitors: 0, realtime: 0 }
     }
   })
 
   websiteStats.value = await Promise.all(statsPromises)
-
-  totalPageviews.value = websiteStats.value.reduce((sum, s) => sum + s.pageviews, 0)
-  totalVisitors.value = websiteStats.value.reduce((sum, s) => sum + s.visitors, 0)
-  totalRealtime.value = websiteStats.value.reduce((sum, s) => sum + s.realtime, 0)
+  totalPageviews.value = websiteStats.value.reduce((sum, site) => sum + site.pageviews, 0)
+  totalVisitors.value = websiteStats.value.reduce((sum, site) => sum + site.visitors, 0)
+  totalRealtime.value = websiteStats.value.reduce((sum, site) => sum + site.realtime, 0)
 }
 
-function formatNumber(num: number): string {
+function formatNumber(num: number) {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
   return num.toString()
@@ -87,6 +88,10 @@ function formatNumber(num: number): string {
 
 function goToStats(id: number) {
   router.push(`/stats/${id}`)
+}
+
+function goToWebsites() {
+  router.push('/websites')
 }
 
 onMounted(() => {
@@ -100,137 +105,173 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="space-y-8">
-    <div>
-      <h1 class="text-3xl font-bold tracking-tight">概览</h1>
-      <p class="text-muted-foreground mt-1">查看所有网站的统计数据</p>
-    </div>
+  <div class="space-y-6">
+    <section class="apple-hero">
+      <div class="grid gap-8 xl:grid-cols-[1.12fr_0.88fr] xl:items-start">
+        <div>
+          <span class="apple-label">
+            <Sparkles class="h-3.5 w-3.5" />
+            Overview
+          </span>
+          <h2 class="mt-8 apple-title">先判断现在是否值得继续追，再决定进入哪个站点。</h2>
+        </div>
 
-    <div class="grid gap-4 md:grid-cols-3">
-      <Card class="relative overflow-hidden">
-        <CardContent class="p-6">
-          <div class="flex items-center justify-between">
+        <div class="apple-card">
+          <div class="flex items-start justify-between gap-4">
             <div>
-              <p class="text-sm font-medium text-muted-foreground">总浏览量</p>
-              <p v-if="loading" class="text-3xl font-bold mt-1">
-                <Skeleton class="h-9 w-20" />
-              </p>
-              <p v-else class="text-3xl font-bold mt-1">{{ formatNumber(totalPageviews) }}</p>
+              <p class="text-sm text-slate-500">当前焦点</p>
+              <h3 class="mt-2 text-[1.75rem] font-semibold tracking-[-0.04em] text-slate-950">最活跃站点</h3>
             </div>
-            <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <Eye class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <Compass class="h-5 w-5 text-slate-400" />
+          </div>
+
+          <div v-if="loading" class="mt-8 space-y-3">
+            <Skeleton class="h-8 w-40" />
+            <Skeleton class="h-5 w-52" />
+            <Skeleton class="h-28 w-full" />
+          </div>
+
+          <div v-else-if="spotlight" class="mt-8 space-y-5">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h4 class="text-2xl font-semibold tracking-[-0.04em] text-slate-950">{{ spotlight.name }}</h4>
+                <Badge v-if="spotlight.realtime > 0" variant="success">{{ spotlight.realtime }} 在线</Badge>
+              </div>
+              <p class="mt-2 text-sm text-slate-500">{{ spotlight.domain }}</p>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="apple-soft">
+                <p class="text-xs text-slate-500">浏览量</p>
+                <p class="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">{{ formatNumber(spotlight.pageviews) }}</p>
+              </div>
+              <div class="apple-soft">
+                <p class="text-xs text-slate-500">访客</p>
+                <p class="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">{{ formatNumber(spotlight.visitors) }}</p>
+              </div>
+              <div class="apple-soft">
+                <p class="text-xs text-slate-500">状态</p>
+                <p class="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">{{ spotlight.realtime > 0 ? '活跃' : '平稳' }}</p>
+              </div>
+            </div>
+
+            <div class="grid gap-2 sm:flex sm:flex-wrap">
+              <Button class="w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800 sm:w-auto" @click="goToStats(spotlight.id)">进入统计</Button>
+              <Button variant="outline" class="w-full rounded-2xl border-slate-200 bg-white/80 sm:w-auto" @click="goToWebsites()">管理站点</Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card class="relative overflow-hidden">
-        <CardContent class="p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-muted-foreground">总访客数</p>
-              <p v-if="loading" class="text-3xl font-bold mt-1">
-                <Skeleton class="h-9 w-20" />
-              </p>
-              <p v-else class="text-3xl font-bold mt-1">{{ formatNumber(totalVisitors) }}</p>
-            </div>
-            <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <Users class="w-6 h-6 text-green-600 dark:text-green-400" />
-            </div>
+          <div v-else class="mt-8 space-y-4">
+            <p class="text-sm leading-7 text-slate-600">还没有站点数据，先添加网站并安装追踪脚本。</p>
+            <Button class="rounded-2xl bg-slate-950 text-white hover:bg-slate-800" @click="goToWebsites()">添加网站</Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+    </section>
 
-      <Card class="relative overflow-hidden">
-        <CardContent class="p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-muted-foreground">
-                <span class="flex items-center gap-1">
-                  实时在线
-                  <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                </span>
-              </p>
-              <p v-if="loading" class="text-3xl font-bold mt-1">
-                <Skeleton class="h-9 w-20" />
-              </p>
-              <p v-else class="text-3xl font-bold mt-1">{{ totalRealtime }}</p>
-            </div>
-            <div class="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-              <TrendingUp class="w-6 h-6 text-purple-600 dark:text-purple-400" />
-            </div>
+    <section class="grid gap-4 md:grid-cols-4">
+      <div class="apple-card">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="text-sm">总浏览量</span>
+          <Eye class="h-4 w-4" />
+        </div>
+        <p v-if="loading" class="mt-4"><Skeleton class="h-10 w-24" /></p>
+        <p v-else class="apple-stat-value">{{ formatNumber(totalPageviews) }}</p>
+      </div>
+      <div class="apple-card">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="text-sm">总访客数</span>
+          <Users class="h-4 w-4" />
+        </div>
+        <p v-if="loading" class="mt-4"><Skeleton class="h-10 w-24" /></p>
+        <p v-else class="apple-stat-value">{{ formatNumber(totalVisitors) }}</p>
+      </div>
+      <div class="apple-card">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="text-sm">实时在线</span>
+          <Activity class="h-4 w-4" />
+        </div>
+        <p v-if="loading" class="mt-4"><Skeleton class="h-10 w-24" /></p>
+        <p v-else class="apple-stat-value">{{ totalRealtime }}</p>
+      </div>
+      <div class="apple-card">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="text-sm">活跃站点</span>
+          <Globe2 class="h-4 w-4" />
+        </div>
+        <p v-if="loading" class="mt-4"><Skeleton class="h-10 w-24" /></p>
+        <p v-else class="apple-stat-value">{{ activeSites.length }}</p>
+      </div>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <div class="apple-surface p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Priority List</p>
+            <h3 class="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">优先查看这些站点</h3>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          <Button variant="ghost" class="rounded-2xl" @click="goToWebsites()">查看全部</Button>
+        </div>
 
-    <Card>
-      <CardHeader>
-        <CardTitle class="flex items-center gap-2">
-          <Globe class="w-5 h-5" />
-          网站列表
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div v-if="loading" class="space-y-4">
-          <div v-for="i in 3" :key="i" class="flex items-center justify-between p-4 rounded-lg border">
-            <div class="space-y-2">
-              <Skeleton class="h-5 w-32" />
-              <Skeleton class="h-4 w-48" />
-            </div>
-            <Skeleton class="h-9 w-20" />
+        <div v-if="loading" class="mt-6 space-y-3">
+          <div v-for="i in 4" :key="i" class="rounded-[24px] border border-slate-200 p-4">
+            <Skeleton class="h-6 w-40" />
+            <Skeleton class="mt-2 h-4 w-56" />
           </div>
         </div>
 
-        <div v-else-if="websiteStats.length === 0" class="text-center py-12">
-          <Globe class="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p class="text-muted-foreground">暂无网站，请先添加网站</p>
-        </div>
-
-        <div v-else class="space-y-3">
-          <div
-            v-for="site in websiteStats"
+        <div v-else-if="topSites.length" class="mt-6 space-y-3">
+          <button
+            v-for="site in topSites"
             :key="site.id"
-            class="flex items-center justify-between p-4 rounded-lg border hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+            class="flex w-full items-start justify-between gap-4 rounded-[24px] border border-slate-200 bg-white/70 px-5 py-4 text-left transition hover:border-slate-300 hover:bg-white"
             @click="goToStats(site.id)"
           >
-            <div class="flex items-center gap-4">
-              <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                <Globe class="w-5 h-5 text-primary" />
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h4 class="truncate text-lg font-semibold tracking-[-0.03em] text-slate-950">{{ site.name }}</h4>
+                <Badge v-if="site.realtime > 0" variant="success">{{ site.realtime }} 在线</Badge>
               </div>
-              <div>
-                <h3 class="font-semibold">{{ site.name }}</h3>
-                <p class="text-sm text-muted-foreground">{{ site.domain }}</p>
+              <p class="mt-1 truncate text-sm text-slate-500">{{ site.domain }}</p>
+              <div class="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
+                <span>PV {{ formatNumber(site.pageviews) }}</span>
+                <span>UV {{ formatNumber(site.visitors) }}</span>
               </div>
             </div>
-            <div class="flex items-center gap-6">
-              <div class="text-right hidden sm:block">
-                <div class="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span class="flex items-center gap-1">
-                    <Eye class="w-4 h-4" />
-                    {{ formatNumber(site.pageviews) }}
-                  </span>
-                  <span class="flex items-center gap-1">
-                    <Users class="w-4 h-4" />
-                    {{ formatNumber(site.visitors) }}
-                  </span>
-                  <Badge v-if="site.realtime > 0" variant="success" class="flex items-center gap-1">
-                    <span class="relative flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                    </span>
-                    {{ site.realtime }} 在线
-                  </Badge>
-                </div>
-              </div>
-              <ArrowUpRight class="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            <ArrowUpRight class="mt-1 h-4 w-4 flex-shrink-0 text-slate-400" />
+          </button>
+        </div>
+
+        <div v-else class="mt-6 rounded-[24px] border border-dashed border-slate-200 p-10 text-center text-sm text-slate-500">
+          暂时还没有可展示的数据。
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div class="apple-surface p-6">
+          <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">How To Read</p>
+          <h3 class="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">这个首页该怎么用</h3>
+          <div class="mt-6 space-y-4">
+            <div class="apple-soft">
+              <p class="text-sm font-medium text-slate-950">先看现在热不热</p>
+              <p class="mt-2 text-sm leading-7 text-slate-600">先看实时在线。</p>
+            </div>
+            <div class="apple-soft">
+              <p class="text-sm font-medium text-slate-950">再看哪个站点最值得点</p>
+              <p class="mt-2 text-sm leading-7 text-slate-600">再点最活跃的站点。</p>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        <div class="apple-card">
+          <p class="text-sm text-slate-500">当前判断</p>
+          <p class="mt-4 text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">{{ totalRealtime > 0 ? '现在适合看实时变化' : '现在适合回看历史趋势' }}</p>
+          <p class="mt-4 text-sm leading-7 text-slate-600">
+            {{ totalRealtime > 0 ? '建议优先进入在线站点，观察最近访问和会话变化。' : '建议回到趋势和页面表现，做更冷静的分析。' }}
+          </p>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
