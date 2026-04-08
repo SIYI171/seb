@@ -1,10 +1,15 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { 
-  Card, CardContent, 
-  Button, Input, Label, Dialog,
-  Badge, Skeleton
+import {
+  Card,
+  CardContent,
+  Button,
+  Input,
+  Label,
+  Dialog,
+  Badge,
+  Skeleton
 } from '@/components/ui'
 import { Plus, Trash2, BarChart3, Copy, Check, ExternalLink, Globe, Share2, Link2, X } from 'lucide-vue-next'
 import api from '../api'
@@ -14,7 +19,7 @@ interface Website {
   name: string
   domain: string
   trackingId: string
-  shareToken: string
+  shareToken: string | null
   createdAt: string
 }
 
@@ -43,7 +48,7 @@ async function loadWebsites() {
 
 async function handleCreate() {
   if (!form.value.name || !form.value.domain) return
-  
+
   submitting.value = true
   try {
     const res = await api.post('/websites', form.value)
@@ -61,7 +66,7 @@ async function handleCreate() {
 
 async function handleDelete(id: number) {
   if (!confirm('确定要删除该网站吗？所有统计数据将被删除。')) return
-  
+
   try {
     await api.delete(`/websites/${id}`)
     await loadWebsites()
@@ -93,7 +98,9 @@ async function copyToClipboard(text: string) {
     document.body.removeChild(textarea)
   }
   copied.value = text
-  setTimeout(() => { copied.value = null }, 2000)
+  setTimeout(() => {
+    copied.value = null
+  }, 2000)
 }
 
 function goToStats(id: number) {
@@ -192,8 +199,8 @@ onMounted(() => {
                       已分享
                     </Badge>
                   </div>
-                  <a 
-                    :href="'https://' + site.domain" 
+                  <a
+                    :href="'https://' + site.domain"
                     target="_blank"
                     class="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
                   >
@@ -202,12 +209,12 @@ onMounted(() => {
                   </a>
                 </div>
               </div>
-              
+
               <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 font-mono text-xs overflow-x-auto">
                 <div class="flex items-center justify-between gap-2">
                   <code class="text-slate-600 dark:text-slate-300 break-all">{{ getTrackingCode(site.trackingId) }}</code>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
                     class="flex-shrink-0"
                     @click="copyToClipboard(getTrackingCode(site.trackingId))"
@@ -217,12 +224,12 @@ onMounted(() => {
                   </Button>
                 </div>
               </div>
-              
+
               <p class="text-xs text-muted-foreground">
                 追踪 ID: <code class="bg-muted px-1.5 py-0.5 rounded">{{ site.trackingId }}</code>
               </p>
             </div>
-            
+
             <div class="flex gap-2 lg:flex-col">
               <Button variant="outline" @click="goToStats(site.id)">
                 <BarChart3 class="w-4 h-4 mr-2" />
@@ -248,7 +255,7 @@ onMounted(() => {
           <h2 class="text-lg font-semibold">添加网站</h2>
           <p class="text-sm text-muted-foreground">添加一个新网站来开始追踪数据</p>
         </div>
-        
+
         <div class="space-y-4">
           <div class="space-y-2">
             <Label label="网站名称" />
@@ -259,7 +266,7 @@ onMounted(() => {
             <Input v-model="form.domain" placeholder="example.com" />
           </div>
         </div>
-        
+
         <div class="flex justify-end gap-3">
           <Button variant="outline" @click="showDialog = false">取消</Button>
           <Button :loading="submitting" @click="handleCreate">添加</Button>
@@ -273,7 +280,7 @@ onMounted(() => {
           <h2 class="text-lg font-semibold">分享统计</h2>
           <p class="text-sm text-muted-foreground">生成公开链接，让游客查看统计数据</p>
         </div>
-        
+
         <div v-if="shareSite" class="space-y-4">
           <div class="flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
             <Globe class="w-5 h-5 text-muted-foreground" />
@@ -282,17 +289,17 @@ onMounted(() => {
               <p class="text-sm text-muted-foreground">{{ shareSite.domain }}</p>
             </div>
           </div>
-          
+
           <div v-if="shareSite.shareToken" class="space-y-3">
             <div class="flex items-center gap-2">
               <Badge variant="default" class="bg-green-500">分享已启用</Badge>
             </div>
-            
+
             <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 font-mono text-xs">
               <div class="flex items-center justify-between gap-2">
                 <code class="text-slate-600 dark:text-slate-300 break-all">{{ getShareUrl(shareSite.shareToken) }}</code>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   class="flex-shrink-0"
                   @click="copyToClipboard(getShareUrl(shareSite.shareToken))"
@@ -302,13 +309,13 @@ onMounted(() => {
                 </Button>
               </div>
             </div>
-            
+
             <Button variant="outline" class="w-full text-destructive hover:text-destructive" @click="disableShare">
               <X class="w-4 h-4 mr-2" />
               关闭分享
             </Button>
           </div>
-          
+
           <div v-else class="space-y-3">
             <p class="text-sm text-muted-foreground">
               启用分享后将生成一个公开链接，任何人都可以查看该网站的统计数据。
@@ -319,7 +326,7 @@ onMounted(() => {
             </Button>
           </div>
         </div>
-        
+
         <div class="flex justify-end">
           <Button variant="outline" @click="shareDialog = false">关闭</Button>
         </div>

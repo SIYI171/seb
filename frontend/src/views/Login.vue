@@ -1,9 +1,9 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { Button, Card, CardContent, Input, Label } from '@/components/ui'
-import { Eye, EyeOff, BarChart3 } from 'lucide-vue-next'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import api from '../api'
 
 const router = useRouter()
@@ -19,7 +19,7 @@ async function handleLogin() {
   if (!form.value.username || !form.value.password) {
     return
   }
-  
+
   loading.value = true
   try {
     const res = await api.post('/admin/login', form.value)
@@ -44,23 +44,23 @@ async function handleLogin() {
           <h1 class="text-2xl font-bold">SEB Analytics</h1>
           <p class="text-muted-foreground mt-1">登录到您的控制台</p>
         </div>
-        
+
         <form @submit.prevent="handleLogin" class="space-y-4">
           <div class="space-y-2">
             <Label label="用户名" />
             <Input v-model="form.username" placeholder="请输入用户名" />
           </div>
-          
+
           <div class="space-y-2">
             <Label label="密码" />
             <div class="relative">
-              <Input 
-                v-model="form.password" 
-                :type="showPassword ? 'text' : 'password'" 
+              <Input
+                v-model="form.password"
+                :type="showPassword ? 'text' : 'password'"
                 placeholder="请输入密码"
                 class="pr-10"
               />
-              <button 
+              <button
                 type="button"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 @click="showPassword = !showPassword"
@@ -70,7 +70,7 @@ async function handleLogin() {
               </button>
             </div>
           </div>
-          
+
           <Button type="submit" :loading="loading" class="w-full">
             登录
           </Button>

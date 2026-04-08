@@ -12,9 +12,12 @@ public class Session {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long websiteId;
+    private String sessionId;
     private String visitorId;
     private String entryUrl;
     private String exitUrl;
     private Integer duration;
     private LocalDateTime createdAt;
+    private LocalDateTime lastActivityAt;
+    private LocalDateTime endedAt;
 }

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.seb.entity.Pageview;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Select;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,7 +20,7 @@ public interface PageviewRepository extends BaseMapper<Pageview> {
                                           @Param("start") LocalDateTime start, 
                                           @Param("end") LocalDateTime end);
 
-    @Select("SELECT COUNT(DISTINCT session_id) FROM pageview " +
+    @Select("SELECT COUNT(DISTINCT COALESCE(NULLIF(visitor_id, ''), session_id)) FROM pageview " +
             "WHERE website_id = #{websiteId} AND created_at BETWEEN #{start} AND #{end}")
     Integer countUniqueVisitors(@Param("websiteId") Long websiteId, 
                                 @Param("start") LocalDateTime start, 
@@ -80,4 +81,7 @@ public interface PageviewRepository extends BaseMapper<Pageview> {
             "WHERE website_id = #{websiteId} AND created_at >= #{since}")
     Integer countUniqueSessionsSince(@Param("websiteId") Long websiteId, 
                                      @Param("since") LocalDateTime since);
+
+    @Delete("DELETE FROM pageview WHERE website_id = #{websiteId}")
+    int deleteByWebsiteId(@Param("websiteId") Long websiteId);
 }

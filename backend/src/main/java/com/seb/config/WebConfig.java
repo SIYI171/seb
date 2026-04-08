@@ -28,6 +28,6 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/admin/login", "/api/admin/init", "/api/collect", "/api/share/**", "/api/stats/update-locations");
+                .excludePathPatterns("/api/admin/login", "/api/admin/init", "/api/collect", "/api/share/**");
     }
 }

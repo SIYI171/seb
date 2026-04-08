@@ -1,16 +1,32 @@
-<script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+﻿<script setup lang="ts">
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import * as echarts from 'echarts'
-import { 
-  Card, CardContent, CardHeader, CardTitle, 
-  Button, Badge, Skeleton,
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell
+import { echarts } from '../lib/echarts'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Badge,
+  Skeleton,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell
 } from '@/components/ui'
-import { 
-  ArrowLeft, Eye, Users, TrendingUp, Globe, 
-  Monitor, Smartphone, Tablet, ExternalLink,
-  RefreshCw, MapPin, Clock
+import {
+  ArrowLeft,
+  Eye,
+  Users,
+  TrendingUp,
+  Globe,
+  ExternalLink,
+  RefreshCw,
+  MapPin,
+  Clock
 } from 'lucide-vue-next'
 import api from '../api'
 
@@ -23,12 +39,26 @@ interface Website {
 interface Stats {
   pageviews: number
   visitors: number
+  sessions: number
+  averageDuration: number
   trend: Array<{ date: string; count: number }>
   browsers: Array<{ browser: string; count: number }>
   os: Array<{ os: string; count: number }>
   pages: Array<{ url: string; count: number }>
   referrers: Array<{ referrer: string; count: number }>
   countries: Array<{ country: string; count: number }>
+  entryPages: Array<{ url: string; count: number }>
+  exitPages: Array<{ url: string; count: number }>
+  recentSessions: Array<{
+    session_id: string
+    visitor_id: string
+    entry_url: string
+    exit_url: string
+    duration: number
+    created_at: string
+    last_activity_at: string
+    ended_at: string
+  }>
 }
 
 interface RecentVisit {
@@ -153,11 +183,24 @@ function formatTime(dateStr: string): string {
   const date = new Date(dateStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
-  
+
   if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
   return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatDuration(seconds: number): string {
+  if (!seconds || seconds <= 0) return '0s'
+  if (seconds < 60) return `${seconds}s`
+
+  const minutes = Math.floor(seconds / 60)
+  const remainSeconds = seconds % 60
+  if (minutes < 60) return remainSeconds ? `${minutes}m ${remainSeconds}s` : `${minutes}m`
+
+  const hours = Math.floor(minutes / 60)
+  const remainMinutes = minutes % 60
+  return remainMinutes ? `${hours}h ${remainMinutes}m` : `${hours}h`
 }
 
 function renderCharts() {
@@ -170,7 +213,7 @@ function renderCharts() {
       xAxis: {
         type: 'category',
         boundaryGap: false,
-        data: stats.value.trend.map(item => item.date),
+        data: stats.value.trend.map((item) => item.date),
         axisLine: { lineStyle: { color: '#e2e8f0' } },
         axisLabel: { color: '#64748b' }
       },
@@ -186,7 +229,7 @@ function renderCharts() {
         smooth: true,
         symbol: 'circle',
         symbolSize: 6,
-        data: stats.value.trend.map(item => item.count),
+        data: stats.value.trend.map((item) => item.count),
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
@@ -283,19 +326,34 @@ onMounted(async () => {
   await loadRecentVisits()
   await loadTopIps()
   loading.value = false
-  
+
   await nextTick()
   setTimeout(() => {
     renderCharts()
   }, 100)
-  
+
   refreshTimer = window.setInterval(() => {
     loadRealtime()
     loadRecentVisits()
   }, 10000)
-  
+
   window.addEventListener('resize', handleResize)
 })
+
+watch(
+  () => route.params.id,
+  async (newId, oldId) => {
+    if (newId === oldId) {
+      return
+    }
+
+    websiteId.value = Number(newId)
+    loading.value = true
+    await loadWebsite()
+    await refreshAll()
+    loading.value = false
+  }
+)
 
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
@@ -316,9 +374,9 @@ onUnmounted(() => {
         </Button>
         <div>
           <h1 class="text-3xl font-bold tracking-tight">{{ website?.name || '统计详情' }}</h1>
-          <a 
-            v-if="website" 
-            :href="'https://' + website.domain" 
+          <a
+            v-if="website"
+            :href="'https://' + website.domain"
             target="_blank"
             class="text-muted-foreground hover:text-primary flex items-center gap-1 text-sm mt-1"
           >
@@ -333,7 +391,7 @@ onUnmounted(() => {
       </Button>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-4">
       <Card>
         <CardContent class="p-6">
           <div class="flex items-center justify-between">
@@ -374,6 +432,21 @@ onUnmounted(() => {
             </div>
             <div class="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
               <TrendingUp class="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent class="p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted-foreground">平均会话时长</p>
+              <p v-if="loading" class="text-3xl font-bold mt-1"><Skeleton class="h-9 w-20" /></p>
+              <p v-else class="text-3xl font-bold mt-1">{{ formatDuration(stats?.averageDuration || 0) }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <Clock class="w-6 h-6 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
         </CardContent>
@@ -496,6 +569,107 @@ onUnmounted(() => {
     <Card>
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
+          <Users class="w-5 h-5" />
+          会话分析
+        </CardTitle>
+      </CardHeader>
+      <CardContent class="space-y-6">
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="rounded-xl border p-4">
+            <p class="text-sm text-muted-foreground mb-2">会话数</p>
+            <p v-if="loading" class="text-2xl font-bold"><Skeleton class="h-8 w-20" /></p>
+            <p v-else class="text-2xl font-bold">{{ formatNumber(stats?.sessions || 0) }}</p>
+          </div>
+          <div class="rounded-xl border p-4">
+            <p class="text-sm text-muted-foreground mb-2">会话/访客</p>
+            <p v-if="loading" class="text-2xl font-bold"><Skeleton class="h-8 w-20" /></p>
+            <p v-else class="text-2xl font-bold">
+              {{ stats?.visitors ? ((stats?.sessions || 0) / stats.visitors).toFixed(2) : '0.00' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle class="text-base">入口页面</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table v-if="stats?.entryPages?.length">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>入口 URL</TableHead>
+                    <TableHead class="text-right">会话数</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow v-for="entry in stats.entryPages" :key="entry.url">
+                    <TableCell class="font-mono text-xs">{{ truncateUrl(entry.url, 48) }}</TableCell>
+                    <TableCell class="text-right">{{ entry.count }}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+              <p v-else class="text-muted-foreground text-center py-8">暂无数据</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle class="text-base">退出页面</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table v-if="stats?.exitPages?.length">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>退出 URL</TableHead>
+                    <TableHead class="text-right">会话数</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow v-for="exit in stats.exitPages" :key="exit.url">
+                    <TableCell class="font-mono text-xs">{{ truncateUrl(exit.url, 48) }}</TableCell>
+                    <TableCell class="text-right">{{ exit.count }}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+              <p v-else class="text-muted-foreground text-center py-8">暂无数据</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <h3 class="text-base font-semibold mb-3">最近会话</h3>
+          <div v-if="stats?.recentSessions?.length" class="space-y-2">
+            <div
+              v-for="session in stats.recentSessions"
+              :key="session.session_id"
+              class="rounded-xl border p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+            >
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <Badge variant="secondary" class="font-mono">{{ session.session_id }}</Badge>
+                <Badge variant="outline" class="font-mono">{{ session.visitor_id || '-' }}</Badge>
+                <span class="text-xs text-muted-foreground ml-auto">
+                  {{ formatDuration(session.duration || 0) }}
+                </span>
+              </div>
+              <div class="grid gap-2 text-xs text-muted-foreground">
+                <div>入口：{{ truncateUrl(session.entry_url, 72) }}</div>
+                <div>退出：{{ truncateUrl(session.exit_url, 72) }}</div>
+                <div>
+                  活动：{{ formatTime(session.last_activity_at) }}
+                  <span v-if="session.ended_at"> / 结束：{{ formatTime(session.ended_at) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-else class="text-muted-foreground text-center py-8">暂无会话记录</p>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle class="flex items-center gap-2">
           <Clock class="w-5 h-5" />
           最近访问记录
         </CardTitle>
@@ -509,8 +683,8 @@ onUnmounted(() => {
           </div>
         </div>
         <div v-else-if="recentVisits?.length" class="space-y-2">
-          <div 
-            v-for="visit in recentVisits" 
+          <div
+            v-for="visit in recentVisits"
             :key="visit.id"
             class="flex flex-wrap items-center gap-3 p-3 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
           >

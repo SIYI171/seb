@@ -13,6 +13,8 @@
         console.error('SEB: Missing tracking-id');
         return;
     }
+
+    var sessionEnded = false;
     
     function getSessionId() {
         var sessionId = sessionStorage.getItem('seb_session_id');
@@ -21,6 +23,15 @@
             sessionStorage.setItem('seb_session_id', sessionId);
         }
         return sessionId;
+    }
+
+    function getVisitorId() {
+        var visitorId = localStorage.getItem('seb_visitor_id');
+        if (!visitorId) {
+            visitorId = 'sebv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('seb_visitor_id', visitorId);
+        }
+        return visitorId;
     }
     
     function getBrowser() {
@@ -53,10 +64,12 @@
         return 'Desktop';
     }
     
-    function collect() {
-        var data = {
+    function buildPayload(eventType) {
+        return {
             trackingId: trackingId,
+            visitorId: getVisitorId(),
             sessionId: getSessionId(),
+            eventType: eventType,
             url: window.location.href,
             referrer: document.referrer || '',
             browser: getBrowser(),
@@ -64,11 +77,31 @@
             device: getDevice(),
             country: ''
         };
-        
+    }
+
+    function sendPayload(data, useBeacon) {
+        if (useBeacon && navigator.sendBeacon) {
+            var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            navigator.sendBeacon(apiEndpoint, blob);
+            return;
+        }
+
         var xhr = new XMLHttpRequest();
         xhr.open('POST', apiEndpoint, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.send(JSON.stringify(data));
+    }
+
+    function collect() {
+        sendPayload(buildPayload('pageview'), false);
+    }
+
+    function endSession() {
+        if (sessionEnded) {
+            return;
+        }
+        sessionEnded = true;
+        sendPayload(buildPayload('session_end'), true);
     }
     
     if (document.readyState === 'complete') {
@@ -76,4 +109,7 @@
     } else {
         window.addEventListener('load', collect);
     }
+
+    window.addEventListener('pagehide', endSession);
+    window.addEventListener('beforeunload', endSession);
 })();

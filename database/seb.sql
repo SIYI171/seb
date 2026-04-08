@@ -1,18 +1,7 @@
-/*
-Navicat MySQL Data Transfer
+-- SEB Analytics schema
+-- Import this file into a new MySQL 8.0 database.
 
-Source Server         : seb
-Source Server Version : 80024
-Source Host           : hk3.lleft.cn:3306
-Source Database       : siyi_seb
-
-Target Server Type    : MYSQL
-Target Server Version : 80024
-File Encoding         : 65001
-
-Date: 2026-04-04 16:10:50
-*/
-
+SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS=0;
 
 -- ----------------------------
@@ -35,6 +24,7 @@ DROP TABLE IF EXISTS `pageview`;
 CREATE TABLE `pageview` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `website_id` bigint NOT NULL,
+  `visitor_id` varchar(64) DEFAULT NULL,
   `session_id` varchar(64) NOT NULL,
   `url` varchar(500) NOT NULL,
   `referrer` varchar(500) DEFAULT NULL,
@@ -58,14 +48,19 @@ DROP TABLE IF EXISTS `session`;
 CREATE TABLE `session` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `website_id` bigint NOT NULL,
+  `session_id` varchar(64) NOT NULL,
   `visitor_id` varchar(64) NOT NULL,
   `entry_url` varchar(500) DEFAULT NULL,
   `exit_url` varchar(500) DEFAULT NULL,
   `duration` int DEFAULT '0',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `last_activity_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `ended_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_website_session` (`website_id`,`session_id`),
   KEY `idx_website_id` (`website_id`),
-  KEY `idx_created_at` (`created_at`)
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_last_activity_at` (`last_activity_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- ----------------------------
@@ -83,3 +78,5 @@ CREATE TABLE `website` (
   UNIQUE KEY `tracking_id` (`tracking_id`),
   UNIQUE KEY `share_token` (`share_token`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+SET FOREIGN_KEY_CHECKS=1;

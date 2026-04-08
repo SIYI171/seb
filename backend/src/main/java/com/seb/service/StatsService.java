@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -43,9 +44,17 @@ public class StatsService {
         if (country == null || country.isEmpty()) {
             country = geoIpService.getLocation(ip);
         }
-        
+
+        LocalDateTime now = LocalDateTime.now();
+        syncSession(website.getId(), request, now);
+
+        if (isSessionEndEvent(request)) {
+            return;
+        }
+
         Pageview pageview = new Pageview();
         pageview.setWebsiteId(website.getId());
+        pageview.setVisitorId(request.getVisitorId());
         pageview.setSessionId(request.getSessionId());
         pageview.setUrl(request.getUrl());
         pageview.setReferrer(request.getReferrer());
@@ -68,23 +77,30 @@ public class StatsService {
                     .between(Pageview::getCreatedAt, startDateTime, endDateTime);
         Long pageviews = pageviewRepository.selectCount(countWrapper);
         
-        Integer visitors = pageviewRepository.countUniqueVisitors(websiteId, startDateTime, endDateTime);
+        Integer visitors = sessionRepository.countUniqueVisitorsInRange(websiteId, startDateTime, endDateTime);
+        Long sessions = sessionRepository.countSessionsInRange(websiteId, startDateTime, endDateTime);
+        Integer averageDuration = sessionRepository.averageDurationInRange(websiteId, startDateTime, endDateTime);
         
         response.setPageviews(pageviews);
         response.setVisitors(visitors != null ? visitors : 0);
+        response.setSessions(sessions != null ? sessions : 0L);
+        response.setAverageDuration(averageDuration != null ? averageDuration : 0);
         response.setTrend(pageviewRepository.countByDate(websiteId, startDateTime, endDateTime));
         response.setBrowsers(pageviewRepository.countByBrowser(websiteId, startDateTime, endDateTime));
         response.setOs(pageviewRepository.countByOs(websiteId, startDateTime, endDateTime));
         response.setPages(pageviewRepository.countByUrl(websiteId, startDateTime, endDateTime));
         response.setReferrers(pageviewRepository.countByReferrer(websiteId, startDateTime, endDateTime));
         response.setCountries(pageviewRepository.countByCountry(websiteId, startDateTime, endDateTime));
+        response.setEntryPages(sessionRepository.countByEntryUrl(websiteId, startDateTime, endDateTime));
+        response.setExitPages(sessionRepository.countByExitUrl(websiteId, startDateTime, endDateTime));
+        response.setRecentSessions(sessionRepository.findRecentSessions(websiteId, 10));
         
         return response;
     }
     
     public Long getRealtimeCount(Long websiteId) {
         LocalDateTime fiveMinutesAgo = LocalDateTime.now().minusMinutes(5);
-        Integer count = pageviewRepository.countUniqueSessionsSince(websiteId, fiveMinutesAgo);
+        Integer count = sessionRepository.countActiveSessionsSince(websiteId, fiveMinutesAgo);
         return count != null ? count.longValue() : 0L;
     }
 
@@ -117,5 +133,59 @@ public class StatsService {
             }
         }
         return updated;
+    }
+
+    private void syncSession(Long websiteId, CollectRequest request, LocalDateTime now) {
+        if (request.getSessionId() == null || request.getSessionId().isEmpty()) {
+            return;
+        }
+
+        LambdaQueryWrapper<Session> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Session::getWebsiteId, websiteId)
+                .eq(Session::getSessionId, request.getSessionId())
+                .last("LIMIT 1");
+
+        Session session = sessionRepository.selectOne(wrapper);
+        if (session == null) {
+            session = new Session();
+            session.setWebsiteId(websiteId);
+            session.setSessionId(request.getSessionId());
+            session.setVisitorId(resolveVisitorId(request));
+            session.setEntryUrl(request.getUrl());
+            session.setExitUrl(request.getUrl());
+            session.setDuration(0);
+            session.setCreatedAt(now);
+            session.setLastActivityAt(now);
+            session.setEndedAt(isSessionEndEvent(request) ? now : null);
+            sessionRepository.insert(session);
+            return;
+        }
+
+        if (request.getVisitorId() != null && !request.getVisitorId().isEmpty()) {
+            session.setVisitorId(request.getVisitorId());
+        }
+        if (request.getUrl() != null && !request.getUrl().isEmpty()) {
+            if (session.getEntryUrl() == null || session.getEntryUrl().isEmpty()) {
+                session.setEntryUrl(request.getUrl());
+            }
+            session.setExitUrl(request.getUrl());
+        }
+
+        session.setLastActivityAt(now);
+        LocalDateTime createdAt = session.getCreatedAt() != null ? session.getCreatedAt() : now;
+        session.setDuration((int) Math.max(0, ChronoUnit.SECONDS.between(createdAt, now)));
+        session.setEndedAt(isSessionEndEvent(request) ? now : null);
+        sessionRepository.updateById(session);
+    }
+
+    private boolean isSessionEndEvent(CollectRequest request) {
+        return "session_end".equalsIgnoreCase(request.getEventType());
+    }
+
+    private String resolveVisitorId(CollectRequest request) {
+        if (request.getVisitorId() != null && !request.getVisitorId().isEmpty()) {
+            return request.getVisitorId();
+        }
+        return request.getSessionId();
     }
 }

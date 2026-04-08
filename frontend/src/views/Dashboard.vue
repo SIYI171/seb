@@ -1,8 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@/components/ui'
-import { Eye, Users, Globe, TrendingUp, ArrowUpRight, Clock } from 'lucide-vue-next'
+import { Eye, Users, Globe, TrendingUp, ArrowUpRight } from 'lucide-vue-next'
 import api from '../api'
 
 interface Website {
@@ -71,9 +71,9 @@ async function loadAllStats() {
       }
     }
   })
-  
+
   websiteStats.value = await Promise.all(statsPromises)
-  
+
   totalPageviews.value = websiteStats.value.reduce((sum, s) => sum + s.pageviews, 0)
   totalVisitors.value = websiteStats.value.reduce((sum, s) => sum + s.visitors, 0)
   totalRealtime.value = websiteStats.value.reduce((sum, s) => sum + s.realtime, 0)
@@ -184,15 +184,15 @@ onUnmounted(() => {
             <Skeleton class="h-9 w-20" />
           </div>
         </div>
-        
+
         <div v-else-if="websiteStats.length === 0" class="text-center py-12">
           <Globe class="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <p class="text-muted-foreground">暂无网站，请先添加网站</p>
         </div>
-        
+
         <div v-else class="space-y-3">
-          <div 
-            v-for="site in websiteStats" 
+          <div
+            v-for="site in websiteStats"
             :key="site.id"
             class="flex items-center justify-between p-4 rounded-lg border hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
             @click="goToStats(site.id)"

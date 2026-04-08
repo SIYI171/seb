@@ -5,7 +5,9 @@ import lombok.Data;
 @Data
 public class CollectRequest {
     private String trackingId;
+    private String visitorId;
     private String sessionId;
+    private String eventType;
     private String url;
     private String referrer;
     private String browser;

@@ -2,8 +2,11 @@ package com.seb.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.seb.entity.Website;
+import com.seb.repository.PageviewRepository;
+import com.seb.repository.SessionRepository;
 import com.seb.repository.WebsiteRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,9 +14,15 @@ import java.util.UUID;
 public class WebsiteService {
     
     private final WebsiteRepository websiteRepository;
+    private final PageviewRepository pageviewRepository;
+    private final SessionRepository sessionRepository;
     
-    public WebsiteService(WebsiteRepository websiteRepository) {
+    public WebsiteService(WebsiteRepository websiteRepository,
+                          PageviewRepository pageviewRepository,
+                          SessionRepository sessionRepository) {
         this.websiteRepository = websiteRepository;
+        this.pageviewRepository = pageviewRepository;
+        this.sessionRepository = sessionRepository;
     }
     
     public List<Website> findAll() {
@@ -30,7 +39,10 @@ public class WebsiteService {
         return website;
     }
     
+    @Transactional
     public void delete(Long id) {
+        pageviewRepository.deleteByWebsiteId(id);
+        sessionRepository.deleteByWebsiteId(id);
         websiteRepository.deleteById(id);
     }
     

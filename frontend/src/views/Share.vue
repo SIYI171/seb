@@ -1,12 +1,16 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import * as echarts from 'echarts'
-import { 
-  Card, CardContent, CardHeader, CardTitle, 
-  Badge, Skeleton
+import { echarts } from '../lib/echarts'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Badge,
+  Skeleton
 } from '@/components/ui'
-import { Eye, Users, TrendingUp, Globe, Clock, MapPin } from 'lucide-vue-next'
+import { Eye, Users, TrendingUp, Globe, Clock } from 'lucide-vue-next'
 import axios from 'axios'
 
 interface Website {
@@ -121,10 +125,10 @@ function formatTime(dateStr: string): string {
   const date = new Date(dateStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
-  
+
   if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
   return date.toLocaleDateString('zh-CN')
 }
 
@@ -138,7 +142,7 @@ function renderCharts() {
       xAxis: {
         type: 'category',
         boundaryGap: false,
-        data: stats.value.trend.map(item => item.date),
+        data: stats.value.trend.map((item) => item.date),
         axisLine: { lineStyle: { color: '#e2e8f0' } },
         axisLabel: { color: '#64748b' }
       },
@@ -154,7 +158,7 @@ function renderCharts() {
         smooth: true,
         symbol: 'circle',
         symbolSize: 6,
-        data: stats.value.trend.map(item => item.count),
+        data: stats.value.trend.map((item) => item.count),
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
@@ -251,17 +255,17 @@ onMounted(async () => {
     await loadRealtime()
     await loadRecentVisits()
     loading.value = false
-    
+
     await nextTick()
     setTimeout(() => {
       renderCharts()
     }, 100)
-    
+
     refreshTimer = window.setInterval(() => {
       loadRealtime()
       loadRecentVisits()
     }, 10000)
-    
+
     window.addEventListener('resize', handleResize)
   }
 })
@@ -408,8 +412,8 @@ onUnmounted(() => {
               </div>
             </div>
             <div v-else-if="recentVisits?.length" class="space-y-2">
-              <div 
-                v-for="visit in recentVisits" 
+              <div
+                v-for="visit in recentVisits"
                 :key="visit.id"
                 class="p-3 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
               >

@@ -4,6 +4,18 @@ import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [vue()],
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ['vue', 'vue-router', 'pinia'],
+          charts: ['echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers'],
+          ui: ['axios', 'lucide-vue-next', 'radix-vue']
+        }
+      }
+    }
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

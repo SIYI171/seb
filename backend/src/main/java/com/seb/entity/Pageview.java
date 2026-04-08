@@ -12,6 +12,7 @@ public class Pageview {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long websiteId;
+    private String visitorId;
     private String sessionId;
     private String url;
     private String referrer;

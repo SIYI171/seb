@@ -56,16 +56,23 @@ cd seb
 CREATE DATABASE seb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
+导入初始化表结构：
+
+```bash
+mysql -u root -p seb < database/seb.sql
+```
+
 #### 3. 配置后端
 
-编辑 `backend/src/main/resources/application.yml`：
+后端默认读取以下环境变量，也可以直接编辑 `backend/src/main/resources/application.yml`：
 
 ```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/seb
-    username: your_username
-    password: your_password
+SERVER_PORT=7322
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=seb
+DB_USER=seb
+DB_PASS=123456
 ```
 
 #### 4. 下载 GeoIP 数据库
@@ -89,6 +96,8 @@ npm run dev
 
 访问 http://localhost:3000 即可使用。
 
+后端默认监听 `http://localhost:7322`。
+
 ## 快速安装
 
 ### 1. 下载 Release
@@ -103,6 +112,12 @@ npm run dev
 
 ```sql
 CREATE DATABASE seb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+导入初始化表结构：
+
+```bash
+mysql -u root -p seb < database/seb.sql
 ```
 
 ### 3. 准备目录结构
@@ -191,6 +206,12 @@ java -jar backend/target/seb-backend-1.0.0.jar
 ```html
 <script src="https://your-domain.com/tracker/seb.js" data-tracking-id="your_tracking_id"></script>
 ```
+
+说明：
+
+- 脚本会在浏览器本地保存 `visitor_id`，用于统计独立访客（UV）
+- 脚本会在当前会话保存 `session_id`，用于统计实时在线人数
+- 如果需要自定义采集地址，也可以额外传入 `data-endpoint`
 
 ### 分享统计数据
 
