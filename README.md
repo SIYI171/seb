@@ -1,72 +1,62 @@
 # SEB Analytics
 
-一个轻量级的网站访问统计分析工具，支持实时数据展示和分享功能。
+一个开箱即用的网站统计系统。
 
-![Java](https://img.shields.io/badge/Java-17-orange)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-brightgreen)
-![Vue](https://img.shields.io/badge/Vue-3-brightgreen)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-blue)
+适合个人站点、产品官网、落地页和小型项目使用，支持后台查看、公开分享和追踪脚本接入。
 
-## 功能特性
+## 功能
 
-- 📊 **实时统计** - 实时在线人数、页面访问量、访客数
-- 📈 **数据可视化** - 访问趋势、浏览器分布、操作系统分布、地区分布图表
-- 🌍 **IP 地理位置** - 自动解析访客 IP 所在地区
-- 🔗 **分享功能** - 生成分享链接，无需登录即可查看统计数据
-- 📱 **响应式设计** - 支持桌面端和移动端
-- 🔒 **单用户管理** - 简洁的管理员登录，支持多网站管理
+- 多站点管理
+- PV、UV、实时在线
+- 访问趋势、浏览器、系统、地区分布
+- 热门页面、最近访问、IP 排行
+- 会话分析
+- 公开分享页
+- CSV 导出
+- 支持桌面端和移动端
 
-## 技术栈
+## Release 文件
 
-### 后端
-- Java 17
-- Spring Boot 3.2
-- MyBatis Plus
-- MySQL 8.0
-- MaxMind GeoIP2
+在 `release` 中会提供：
 
-### 前端
-- Vue 3
-- TypeScript
-- Tailwind CSS
-- shadcn-vue
-- ECharts
+- `seb-frontend-dist.zip`
+- `seb-backend-1.0.0.jar`
 
-## 快速开始
-
-### 环境要求
+你只需要准备：
 
 - Java 17+
-- Node.js 18+
-- MySQL 8.0+
-- Maven 3.8+
+- MySQL 8+
+- 一个 Web 服务环境（例如 Nginx）
 
-### 本地开发
+## 快速使用
 
-#### 1. 克隆项目
+### 1. 创建数据库
 
-```bash
-git clone https://github.com/SIYI171/seb.git
-cd seb
-```
-
-#### 2. 创建数据库
+先创建数据库：
 
 ```sql
 CREATE DATABASE seb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-导入初始化表结构：
+然后导入初始化文件：
 
 ```bash
 mysql -u root -p seb < database/seb.sql
 ```
 
-#### 3. 配置后端
+### 2. 启动后端
 
-后端默认读取以下环境变量，也可以直接编辑 `backend/src/main/resources/application.yml`：
+运行 release 中的后端包：
 
-```yaml
+```bash
+java -jar seb-backend-1.0.0.jar
+```
+
+默认端口是 `7322`。
+
+如需自定义数据库连接，可通过环境变量配置：
+
+```bash
 SERVER_PORT=7322
 DB_HOST=localhost
 DB_PORT=3306
@@ -75,200 +65,94 @@ DB_USER=seb
 DB_PASS=123456
 ```
 
-#### 4. 下载 GeoIP 数据库
+### 3. 部署前端
 
-从 [MaxMind](https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb) 下载 GeoLite2-City.mmdb，放入 `backend/data/` 目录。
+把 `seb-frontend-dist.zip` 解压到网站目录。
 
-#### 5. 启动后端
+例如：
 
-```bash
-cd backend
-mvn spring-boot:run
+```text
+/var/www/seb/
+├── index.html
+├── assets/
+└── tracker/
+    └── seb.js
 ```
 
-#### 6. 启动前端
+### 4. 配置反向代理
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-访问 http://localhost:3000 即可使用。
-
-后端默认监听 `http://localhost:7322`。
-
-## 快速安装
-
-### 1. 下载 Release
-
-从 [Releases](https://github.com/SIYI171/seb/releases) 页面下载最新版本：
-
-- `seb-backend-1.0.0.jar` - 后端程序
-- `seb-frontend-dist.zip` - 前端静态文件
-- `GeoLite2-City.mmdb` - GeoIP 数据库（可选）
-
-### 2. 创建数据库
-
-```sql
-CREATE DATABASE seb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-导入初始化表结构：
-
-```bash
-mysql -u root -p seb < database/seb.sql
-```
-
-### 3. 准备目录结构
-
-```
-/opt/seb/
-├── seb-backend-1.0.0.jar
-├── data/
-│   └── GeoLite2-City.mmdb    # IP 地理位置数据库
-└── dist/                      # 解压 seb-frontend-dist.zip
-    ├── index.html
-    ├── assets/
-    └── tracker/
-        └── seb.js
-```
-
-### 4. 启动后端
-
-```bash
-cd /opt/seb
-java -jar seb-backend-1.0.0.jar
-```
-
-### 5. 配置 Nginx
+示例：
 
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
-    
-    root /opt/seb/dist;
+
+    root /var/www/seb;
     index index.html;
-    
+
     location / {
         try_files $uri $uri/ /index.html;
     }
-    
+
     location /api/ {
         proxy_pass http://127.0.0.1:7322;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
+
+    location /tracker/ {
+        try_files $uri =404;
+    }
 }
 ```
 
-### 6. 访问
+### 5. 打开后台
 
-打开浏览器访问 `http://your-domain.com`，首次登录会自动注册管理员账号。
+部署完成后，访问你的域名即可进入系统。
 
----
+首次使用时，先初始化管理员账号，再登录后台添加网站。
 
-## 生产部署
+## 嵌入统计脚本
 
-### 构建
-
-```bash
-# 后端
-cd backend
-mvn clean package -DskipTests
-
-# 前端
-cd frontend
-npm run build
-```
-
-#### 运行
-
-```bash
-java -jar backend/target/seb-backend-1.0.0.jar
-```
-
-## 使用说明
-
-### 添加网站
-
-1. 登录管理后台
-2. 点击「添加网站」
-3. 填写网站名称和域名
-4. 获取追踪代码
-
-### 嵌入追踪代码
-
-将以下代码添加到你的网站 `</body>` 标签前：
+把下面的代码放到你的网站中：
 
 ```html
-<script src="https://your-domain.com/tracker/seb.js" data-tracking-id="your_tracking_id"></script>
+<script
+  src="https://your-domain.com/tracker/seb.js"
+  data-tracking-id="your_tracking_id">
+</script>
 ```
 
-说明：
+如果采集接口不是默认地址，也可以手动指定：
 
-- 脚本会在浏览器本地保存 `visitor_id`，用于统计独立访客（UV）
-- 脚本会在当前会话保存 `session_id`，用于统计实时在线人数
-- 如果需要自定义采集地址，也可以额外传入 `data-endpoint`
-
-### 分享统计数据
-
-1. 进入网站统计页面
-2. 点击「分享」按钮
-3. 开启分享功能
-4. 复制分享链接
-
-## Nginx 配置示例
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    
-    root /var/www/seb/dist;
-    index index.html;
-    
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-    
-    location /api/ {
-        proxy_pass http://127.0.0.1:7322;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-    
-    location /tracker/ {
-        root /var/www/seb/dist;
-    }
-}
+```html
+<script
+  src="https://your-domain.com/tracker/seb.js"
+  data-tracking-id="your_tracking_id"
+  data-endpoint="https://your-domain.com/api/collect">
+</script>
 ```
 
-## 项目结构
+## 使用方式
 
-```
-seb/
-├── backend/                    # 后端代码
-│   ├── src/
-│   │   └── main/
-│   │       ├── java/
-│   │       └── resources/
-│   └── pom.xml
-├── frontend/                   # 前端代码
-│   ├── src/
-│   ├── public/
-│   └── package.json
-└── README.md
-```
+1. 登录后台
+2. 添加网站
+3. 复制追踪脚本并嵌入你的网站
+4. 回到后台查看统计
+5. 如有需要，可开启分享链接给他人查看
+
+## 分享页
+
+分享页适合展示：
+
+- 访问趋势
+- 基础访问构成
+- 热门页面和访问概况
+
+分享页不给访客后台操作权限，只用于查看数据。
 
 ## License
 
 [MIT License](LICENSE)
-
-## 致谢
-
-- [Umami](https://umami.is/) - 设计灵感来源
-- [MaxMind GeoLite2](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) - IP 地理位置数据
