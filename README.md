@@ -4,6 +4,8 @@
 
 适合个人站点、产品官网、落地页和小型项目使用，支持后台查看、公开分享和追踪脚本接入。
 
+![截图](https://tc.lleft.cn/PicGo/sebscreenshots.png)
+
 ## 功能
 
 - 多站点管理
