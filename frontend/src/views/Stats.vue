@@ -580,7 +580,7 @@ onUnmounted(() => {
   <div class="space-y-6">
     <section class="apple-hero">
       <div class="grid gap-8 xl:grid-cols-[1.08fr_0.92fr] xl:items-start">
-        <div>
+        <div class="min-w-0">
           <div class="flex items-center gap-3">
             <Button variant="ghost" size="icon" class="rounded-2xl bg-white/80" @click="router.push('/dashboard')">
               <ArrowLeft class="h-5 w-5" />
@@ -591,12 +591,12 @@ onUnmounted(() => {
             </span>
           </div>
 
-          <h1 class="mt-6 apple-title">{{ website?.name || '统计详情' }}</h1>
+          <h1 class="mt-6 break-words apple-title">{{ website?.name || '统计详情' }}</h1>
           <a
             v-if="website"
             :href="website.domain.startsWith('http') ? website.domain : `https://${website.domain}`"
             target="_blank"
-            class="mt-4 inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-slate-900"
+            class="mt-4 inline-flex max-w-full items-center gap-1 break-all text-sm text-slate-500 transition hover:text-slate-900"
           >
             {{ website.domain }}
             <ExternalLink class="h-3.5 w-3.5" />
@@ -606,7 +606,7 @@ onUnmounted(() => {
 
         <div class="apple-card">
           <p class="text-sm font-medium text-slate-950">时间范围</p>
-          <div class="mt-4 grid grid-cols-3 gap-2">
+          <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Button :variant="rangePreset === 'today' ? 'default' : 'outline'" :class="rangePreset === 'today' ? 'rounded-2xl bg-slate-950 text-white hover:bg-slate-800' : 'rounded-2xl border-slate-200 bg-white/80'" @click="applyPresetAndRefresh('today')">今天</Button>
             <Button :variant="rangePreset === '7d' ? 'default' : 'outline'" :class="rangePreset === '7d' ? 'rounded-2xl bg-slate-950 text-white hover:bg-slate-800' : 'rounded-2xl border-slate-200 bg-white/80'" @click="applyPresetAndRefresh('7d')">7 天</Button>
             <Button :variant="rangePreset === '30d' ? 'default' : 'outline'" :class="rangePreset === '30d' ? 'rounded-2xl bg-slate-950 text-white hover:bg-slate-800' : 'rounded-2xl border-slate-200 bg-white/80'" @click="applyPresetAndRefresh('30d')">30 天</Button>
@@ -667,7 +667,7 @@ onUnmounted(() => {
       <div class="apple-surface p-6">
         <div class="mb-4">
           <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Trend</p>
-          <h2 class="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">访问趋势</h2>
+          <h2 class="mt-2 text-[1.5rem] font-semibold tracking-[-0.04em] text-slate-950 sm:text-[1.8rem]">访问趋势</h2>
         </div>
         <div class="relative h-[320px]">
           <div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div>
@@ -706,8 +706,8 @@ onUnmounted(() => {
 
     <section>
       <div class="mb-4">
-        <h2 class="text-xl font-semibold tracking-[-0.03em] text-slate-950">受众构成</h2>
-        <p class="mt-1 text-sm text-slate-500">浏览器、操作系统和地区能快速还原访问轮廓。</p>
+        <h2 class="apple-section-title">受众构成</h2>
+        <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">浏览器、操作系统和地区能快速还原访问轮廓。</p>
       </div>
       <div class="grid gap-6 lg:grid-cols-3">
         <Card class="border-0 bg-white/80 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.22)] backdrop-blur-xl"><CardHeader><CardTitle class="text-base">浏览器分布</CardTitle></CardHeader><CardContent><div class="relative h-[220px]"><div v-show="loading" class="absolute inset-0"><Skeleton class="h-full w-full" /></div><div v-show="!loading" ref="browserChartRef" class="h-full w-full"></div></div></CardContent></Card>
@@ -745,8 +745,8 @@ onUnmounted(() => {
 
     <section class="space-y-6">
       <div>
-        <h2 class="text-xl font-semibold tracking-[-0.03em] text-slate-950">会话分析</h2>
-        <p class="mt-1 text-sm text-slate-500">这里更接近用户在站内怎么走，而不是单纯的访问量。</p>
+        <h2 class="apple-section-title">会话分析</h2>
+        <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">这里更接近用户在站内怎么走，而不是单纯的访问量。</p>
       </div>
       <div class="grid gap-6 lg:grid-cols-2">
         <Card class="border-0 bg-white/80 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.22)] backdrop-blur-xl"><CardHeader><CardTitle class="text-base">入口页面</CardTitle></CardHeader><CardContent><div v-if="stats?.entryPages?.length" class="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>入口 URL</TableHead><TableHead class="text-right">会话数</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="entry in stats.entryPages" :key="entry.url"><TableCell class="min-w-[220px] font-mono text-xs">{{ truncateUrl(entry.url) }}</TableCell><TableCell class="text-right">{{ entry.count }}</TableCell></TableRow></TableBody></Table></div><p v-else class="py-8 text-center text-muted-foreground">暂无数据</p></CardContent></Card>
@@ -776,8 +776,8 @@ onUnmounted(() => {
 
     <section>
       <div class="mb-4">
-        <h2 class="text-xl font-semibold tracking-[-0.03em] text-slate-950">最近访问</h2>
-        <p class="mt-1 text-sm text-slate-500">用最近访问补足图表之外的上下文。</p>
+        <h2 class="apple-section-title">最近访问</h2>
+        <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">用最近访问补足图表之外的上下文。</p>
       </div>
       <Card class="border-0 bg-white/80 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.22)] backdrop-blur-xl">
         <CardContent class="p-4 sm:p-6">

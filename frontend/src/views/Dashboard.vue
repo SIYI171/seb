@@ -108,19 +108,19 @@ onUnmounted(() => {
   <div class="space-y-6">
     <section class="apple-hero">
       <div class="grid gap-8 xl:grid-cols-[1.12fr_0.88fr] xl:items-start">
-        <div>
+        <div class="min-w-0">
           <span class="apple-label">
             <Sparkles class="h-3.5 w-3.5" />
             Overview
           </span>
-          <h2 class="mt-8 apple-title">先判断现在是否值得继续追，再决定进入哪个站点。</h2>
+          <h2 class="mt-6 max-w-3xl apple-title sm:mt-8">先判断现在是否值得继续追，再决定进入哪个站点。</h2>
         </div>
 
         <div class="apple-card">
           <div class="flex items-start justify-between gap-4">
             <div>
               <p class="text-sm text-slate-500">当前焦点</p>
-              <h3 class="mt-2 text-[1.75rem] font-semibold tracking-[-0.04em] text-slate-950">最活跃站点</h3>
+              <h3 class="mt-2 text-[1.45rem] font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-[1.75rem]">最活跃站点</h3>
             </div>
             <Compass class="h-5 w-5 text-slate-400" />
           </div>
@@ -134,13 +134,13 @@ onUnmounted(() => {
           <div v-else-if="spotlight" class="mt-8 space-y-5">
             <div>
               <div class="flex flex-wrap items-center gap-2">
-                <h4 class="text-2xl font-semibold tracking-[-0.04em] text-slate-950">{{ spotlight.name }}</h4>
+                <h4 class="break-words text-[1.4rem] font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-2xl">{{ spotlight.name }}</h4>
                 <Badge v-if="spotlight.realtime > 0" variant="success">{{ spotlight.realtime }} 在线</Badge>
               </div>
-              <p class="mt-2 text-sm text-slate-500">{{ spotlight.domain }}</p>
+              <p class="mt-2 break-all text-sm text-slate-500">{{ spotlight.domain }}</p>
             </div>
 
-            <div class="grid gap-3 sm:grid-cols-3">
+            <div class="grid gap-3 grid-cols-1 sm:grid-cols-3">
               <div class="apple-soft">
                 <p class="text-xs text-slate-500">浏览量</p>
                 <p class="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">{{ formatNumber(spotlight.pageviews) }}</p>
@@ -162,7 +162,7 @@ onUnmounted(() => {
           </div>
 
           <div v-else class="mt-8 space-y-4">
-            <p class="text-sm leading-7 text-slate-600">还没有站点数据，先添加网站并安装追踪脚本。</p>
+            <p class="apple-copy">还没有站点数据，先添加网站并安装追踪脚本。</p>
             <Button class="rounded-2xl bg-slate-950 text-white hover:bg-slate-800" @click="goToWebsites()">添加网站</Button>
           </div>
         </div>
@@ -209,9 +209,9 @@ onUnmounted(() => {
         <div class="flex items-start justify-between gap-4">
           <div>
             <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Priority List</p>
-            <h3 class="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">优先查看这些站点</h3>
+            <h3 class="mt-2 text-[1.5rem] font-semibold tracking-[-0.04em] text-slate-950 sm:text-[1.8rem]">优先查看这些站点</h3>
           </div>
-          <Button variant="ghost" class="rounded-2xl" @click="goToWebsites()">查看全部</Button>
+          <Button variant="ghost" class="hidden rounded-2xl sm:inline-flex" @click="goToWebsites()">查看全部</Button>
         </div>
 
         <div v-if="loading" class="mt-6 space-y-3">
@@ -225,16 +225,16 @@ onUnmounted(() => {
           <button
             v-for="site in topSites"
             :key="site.id"
-            class="flex w-full items-start justify-between gap-4 rounded-[24px] border border-slate-200 bg-white/70 px-5 py-4 text-left transition hover:border-slate-300 hover:bg-white"
+            class="flex w-full items-start justify-between gap-4 rounded-[24px] border border-slate-200 bg-white/70 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-white sm:px-5"
             @click="goToStats(site.id)"
           >
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
-                <h4 class="truncate text-lg font-semibold tracking-[-0.03em] text-slate-950">{{ site.name }}</h4>
+                <h4 class="break-words text-base font-semibold tracking-[-0.03em] text-slate-950 sm:text-lg">{{ site.name }}</h4>
                 <Badge v-if="site.realtime > 0" variant="success">{{ site.realtime }} 在线</Badge>
               </div>
-              <p class="mt-1 truncate text-sm text-slate-500">{{ site.domain }}</p>
-              <div class="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
+              <p class="mt-1 break-all text-sm text-slate-500 sm:truncate">{{ site.domain }}</p>
+              <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
                 <span>PV {{ formatNumber(site.pageviews) }}</span>
                 <span>UV {{ formatNumber(site.visitors) }}</span>
               </div>
@@ -251,23 +251,23 @@ onUnmounted(() => {
       <div class="space-y-6">
         <div class="apple-surface p-6">
           <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">How To Read</p>
-          <h3 class="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">这个首页该怎么用</h3>
+          <h3 class="mt-2 text-[1.5rem] font-semibold tracking-[-0.04em] text-slate-950 sm:text-[1.8rem]">这个首页该怎么用</h3>
           <div class="mt-6 space-y-4">
             <div class="apple-soft">
               <p class="text-sm font-medium text-slate-950">先看现在热不热</p>
-              <p class="mt-2 text-sm leading-7 text-slate-600">先看实时在线。</p>
+              <p class="mt-2 text-sm leading-6 text-slate-600">先看实时在线。</p>
             </div>
             <div class="apple-soft">
               <p class="text-sm font-medium text-slate-950">再看哪个站点最值得点</p>
-              <p class="mt-2 text-sm leading-7 text-slate-600">再点最活跃的站点。</p>
+              <p class="mt-2 text-sm leading-6 text-slate-600">再点最活跃的站点。</p>
             </div>
           </div>
         </div>
 
         <div class="apple-card">
           <p class="text-sm text-slate-500">当前判断</p>
-          <p class="mt-4 text-[1.8rem] font-semibold tracking-[-0.04em] text-slate-950">{{ totalRealtime > 0 ? '现在适合看实时变化' : '现在适合回看历史趋势' }}</p>
-          <p class="mt-4 text-sm leading-7 text-slate-600">
+          <p class="mt-4 text-[1.5rem] font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-[1.8rem]">{{ totalRealtime > 0 ? '现在适合看实时变化' : '现在适合回看历史趋势' }}</p>
+          <p class="mt-4 apple-copy">
             {{ totalRealtime > 0 ? '建议优先进入在线站点，观察最近访问和会话变化。' : '建议回到趋势和页面表现，做更冷静的分析。' }}
           </p>
         </div>
