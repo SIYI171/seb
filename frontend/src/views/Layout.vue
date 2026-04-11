@@ -105,6 +105,14 @@ function logout() {
         <main class="apple-page px-1 pt-1 lg:pt-0">
           <router-view />
         </main>
+
+        <footer class="px-1 pb-8 pt-2 lg:px-0">
+          <div class="apple-attribution">
+            <span>SEB Analytics</span>
+            <span>Author: SIYI171</span>
+            <a href="https://github.com/SIYI171/seb" target="_blank" rel="noreferrer">github.com/SIYI171/seb</a>
+          </div>
+        </footer>
       </div>
     </div>
 

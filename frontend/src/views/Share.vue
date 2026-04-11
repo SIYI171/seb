@@ -308,6 +308,14 @@ onUnmounted(() => {
             </CardContent>
           </Card>
         </section>
+
+        <footer class="pb-4 pt-1">
+          <div class="apple-attribution">
+            <span>Public report by SEB Analytics</span>
+            <span>Author: SIYI171</span>
+            <a href="https://github.com/SIYI171/seb" target="_blank" rel="noreferrer">github.com/SIYI171/seb</a>
+          </div>
+        </footer>
       </div>
     </div>
   </div>

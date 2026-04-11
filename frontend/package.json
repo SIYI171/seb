@@ -2,6 +2,16 @@
   "name": "seb-frontend",
   "version": "1.0.0",
   "private": true,
+  "author": "SIYI171",
+  "license": "MIT",
+  "homepage": "https://github.com/SIYI171/seb",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SIYI171/seb.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SIYI171/seb/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

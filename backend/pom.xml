@@ -16,6 +16,28 @@
     <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>SEB Analytics Backend</name>
+    <url>https://github.com/SIYI171/seb</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>SIYI171</id>
+            <name>SIYI171</name>
+            <url>https://github.com/SIYI171</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/SIYI171/seb</url>
+        <connection>scm:git:https://github.com/SIYI171/seb.git</connection>
+        <developerConnection>scm:git:https://github.com/SIYI171/seb.git</developerConnection>
+    </scm>
 
     <properties>
         <java.version>17</java.version>

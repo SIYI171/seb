@@ -2,6 +2,9 @@
 
 一个开箱即用的网站统计系统。
 
+官方开源仓库：[`SIYI171/seb`](https://github.com/SIYI171/seb)  
+作者：`SIYI171`
+
 适合个人站点、产品官网、落地页和小型项目使用，支持后台查看、公开分享和追踪脚本接入。
 
 ![截图](https://tc.lleft.cn/PicGo/sebscreenshots.png)
