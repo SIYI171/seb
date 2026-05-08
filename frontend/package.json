@@ -22,7 +22,7 @@
     "vue": "^3.4.21",
     "vue-router": "^4.3.0",
     "pinia": "^2.1.7",
-    "axios": "^1.6.8",
+    "axios": "^1.15.2",
     "echarts": "^5.5.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
